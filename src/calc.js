@@ -3,7 +3,7 @@
 const DEFAULT_SUPUESTOS = {
   spreadUsd: 0.01, // Supuestos!B5 spread al convertir BRL a USD
   pixFee: 0, // B6 comisión de cobro PIX/banco
-  partnerFeeCup: 0.03, // B8 comisión del socio, entrega en CUP
+  partnerFeeCup: 0, // B8 comisión del socio, entrega en CUP (sin comisión de socio)
   partnerFeeUsd: 0.02, // B9 comisión del socio, entrega en USD
   margin: 0.04, // B11 margen objetivo
   cushion: 0.015, // B12 colchón por volatilidad

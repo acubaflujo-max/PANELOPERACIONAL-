@@ -5,8 +5,8 @@ const { calcular, armarMensaje, turnoActual } = require('../src/calc');
 // Valores de ejemplo del Excel: USD/BRL 5,5 y CUP/USD 450 con los supuestos por defecto.
 test('coincide con la hoja Calculadora del Excel', () => {
   const r = calcular({ usdBrl: 5.5, cupUsd: 450 });
-  assert.ok(Math.abs(r.equilibrio - 78.5786) < 0.001);
-  assert.strictEqual(r.tasaCup, 74);
+  assert.ok(Math.abs(r.equilibrio - 81.0081) < 0.001); // sin comisión de socio
+  assert.strictEqual(r.tasaCup, 76.5);
   assert.ok(Math.abs(r.brlPorUsd - 5.9801) < 0.001);
 });
 
