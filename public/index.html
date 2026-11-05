@@ -111,7 +111,6 @@
     </div>
     <div class="res" id="res" hidden>
       <div class="kpi"><b id="kTasa">–</b><span>CUP por 1 BRL (a publicar)</span></div>
-      <div class="kpi"><b id="kUsd">–</b><span>BRL por 1 USD entregado</span></div>
       <div class="kpi"><b id="kEq">–</b><span>Tasa de equilibrio (no dar más)</span></div>
     </div>
   </section>
@@ -220,7 +219,6 @@ async function calcular() {
   try {
     const r = await api('/api/calcular', { usdBrl, cupUsd, turno: $('turno').value });
     $('kTasa').textContent = fmt(r.tasaCup, 1) + ' CUP';
-    $('kUsd').textContent = fmt(r.brlPorUsd, 2) + ' BRL';
     $('kEq').textContent = fmt(r.equilibrio, 2) + ' CUP';
     $('res').hidden = false;
     $('mensaje').value = r.mensaje;

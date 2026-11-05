@@ -29,7 +29,8 @@ function turnoActual(fecha = new Date()) {
 
 const fmt = (n, dec) => n.toFixed(dec).replace('.', ',');
 
-function armarMensaje({ tasaCup, brlPorUsd }, { turno, fecha = new Date() }) {
+// Solo se publica la tasa de envío en CUP por real; la entrega en USD no se anuncia.
+function armarMensaje({ tasaCup }, { turno, fecha = new Date() }) {
   const dd = String(fecha.getDate()).padStart(2, '0');
   const mm = String(fecha.getMonth() + 1).padStart(2, '0');
   return [
@@ -38,9 +39,6 @@ function armarMensaje({ tasaCup, brlPorUsd }, { turno, fecha = new Date() }) {
     '',
     '💱 *Envío en CUP*',
     `1 BRL = *${fmt(tasaCup, 1)} CUP*`,
-    '',
-    '💵 *Entrega en USD (efectivo)*',
-    `1 USD = *${fmt(brlPorUsd, 2)} BRL*`,
     '',
     'Tasa vigente hasta la próxima actualización.',
     'Escríbenos para hacer tu envío ✉️',
