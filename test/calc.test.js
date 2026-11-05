@@ -24,10 +24,12 @@ test('rechaza entradas inválidas', () => {
 });
 
 test('el mensaje usa coma decimal y el turno', () => {
-  const m = armarMensaje({ tasaCup: 74 }, { turno: 'Tarde', fecha: new Date(2026, 10, 1) });
+  const m = armarMensaje({ tasaCup: 74, tasaPequena: 72 }, { turno: 'Tarde', fecha: new Date(2026, 10, 1) });
   assert.match(m, /01\/11 · Turno Tarde/);
   assert.match(m, /1 BRL = \*74,0 CUP\*/);
   assert.doesNotMatch(m, /USD/);
+  assert.match(m, /Menos de 100 BRL: 1 BRL = \*72,0 CUP\*/);
+  assert.match(m, /Envío mínimo: 20 BRL/);
 });
 
 test('turno según la hora', () => {

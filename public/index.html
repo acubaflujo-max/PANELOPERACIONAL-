@@ -111,6 +111,7 @@
     </div>
     <div class="res" id="res" hidden>
       <div class="kpi"><b id="kTasa">–</b><span>CUP por 1 BRL (a publicar)</span></div>
+      <div class="kpi"><b id="kPeq">–</b><span id="kPeqTxt">CUP por 1 BRL en envíos pequeños</span></div>
       <div class="kpi"><b id="kEq">–</b><span>Tasa de equilibrio (no dar más)</span></div>
     </div>
   </section>
@@ -139,6 +140,9 @@
       <div class="fila" style="margin-top:12px" id="supuestos"></div>
       <div class="acciones"><button class="sec" id="btnGuardar">Guardar supuestos</button></div>
       <p class="nota">Valores como fracción: 0.03 = 3 %.</p>
+      <h2 style="margin-top:16px">Tramos por monto</h2>
+      <div class="fila" id="tarifa"></div>
+      <div class="acciones"><button class="sec" id="btnTarifa">Guardar tramos</button></div>
     </details>
   </section>
 </main>
@@ -152,6 +156,11 @@ const SUPUESTOS = {
   partnerFeeUsd: 'Comisión del socio (entrega USD)',
   margin: 'Margen objetivo',
   cushion: 'Colchón por volatilidad',
+};
+const TARIFA = {
+  montoMinimoBrl: 'Envío mínimo (BRL)',
+  umbralBrl: 'Por debajo de este monto (BRL) aplica la tasa pequeña',
+  restaCup: 'CUP que se restan a la tasa en envíos pequeños',
 };
 const fmt = (n, d) => n.toFixed(d).replace('.', ',');
 
@@ -175,6 +184,12 @@ function dibujarSupuestos(s) {
   ).join('');
 }
 
+function dibujarTarifa(t) {
+  $('tarifa').innerHTML = Object.entries(TARIFA).map(([k, tx]) =>
+    `<div><label>${tx}</label><input data-t="${k}" type="number" step="0.5" min="0" value="${t[k]}"></div>`
+  ).join('');
+}
+
 let conectadoAntes = false;
 async function refrescarEstado(inicial) {
   try {
@@ -187,7 +202,7 @@ async function refrescarEstado(inicial) {
     $('qr').hidden = !w.qr;
     if (w.qr) $('qr').src = w.qr;
     if (inicial) {
-      dibujarSupuestos(config.supuestos); window.destinoGuardado = config.destinoId;
+      dibujarSupuestos(config.supuestos); dibujarTarifa(config.tarifa); window.destinoGuardado = config.destinoId;
       const c = w.conf || {};
       $('evoUrl').value = c.url || ''; if (c.instance) $('evoInst').value = c.instance;
       $('evoKeyNota').textContent = c.tieneKey ? '(ya guardada; déjala vacía para conservarla)' : '';
@@ -219,6 +234,7 @@ async function calcular() {
   try {
     const r = await api('/api/calcular', { usdBrl, cupUsd, turno: $('turno').value });
     $('kTasa').textContent = fmt(r.tasaCup, 1) + ' CUP';
+    $('kPeq').textContent = fmt(r.tasaPequena, 1) + ' CUP';
     $('kEq').textContent = fmt(r.equilibrio, 2) + ' CUP';
     $('res').hidden = false;
     $('mensaje').value = r.mensaje;
@@ -266,6 +282,13 @@ $('btnGuardar').onclick = async () => {
   const s = {};
   document.querySelectorAll('#supuestos input').forEach((i) => { s[i.dataset.k] = parseFloat(i.value); });
   try { await api('/api/config', { supuestos: s }); aviso('Supuestos guardados', true); calcular(); }
+  catch (e) { aviso(e.message, false); }
+};
+
+$('btnTarifa').onclick = async () => {
+  const t = {};
+  document.querySelectorAll('#tarifa input').forEach((i) => { t[i.dataset.t] = parseFloat(i.value); });
+  try { await api('/api/config', { tarifa: t }); aviso('Tramos guardados', true); calcular(); }
   catch (e) { aviso(e.message, false); }
 };
 

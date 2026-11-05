@@ -1,7 +1,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const { DEFAULT_SUPUESTOS, calcular, turnoActual, armarMensaje } = require('./src/calc');
+const { DEFAULT_SUPUESTOS, DEFAULT_TARIFA, calcular, turnoActual, armarMensaje } = require('./src/calc');
 const { obtenerUsdBrl } = require('./src/rates');
 const { obtenerMercado } = require('./src/mercado');
 const wa = require('./src/whatsapp');
@@ -38,9 +38,9 @@ const INDEX = path.join(__dirname, 'public', 'index.html');
 function leerConfig() {
   try {
     const c = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
-    return { destinoId: c.destinoId || '', supuestos: { ...DEFAULT_SUPUESTOS, ...c.supuestos } };
+    return { destinoId: c.destinoId || '', supuestos: { ...DEFAULT_SUPUESTOS, ...c.supuestos }, tarifa: { ...DEFAULT_TARIFA, ...c.tarifa } };
   } catch {
-    return { destinoId: '', supuestos: { ...DEFAULT_SUPUESTOS } };
+    return { destinoId: '', supuestos: { ...DEFAULT_SUPUESTOS }, tarifa: { ...DEFAULT_TARIFA } };
   }
 }
 
@@ -54,6 +54,16 @@ function validarSupuestos(s) {
   for (const k of Object.keys(DEFAULT_SUPUESTOS)) {
     const v = Number(s?.[k]);
     if (!Number.isFinite(v) || v < 0 || v >= 1) throw new Error(`Supuesto "${k}" debe estar entre 0 y 1 (ej. 0.03 = 3%)`);
+    out[k] = v;
+  }
+  return out;
+}
+
+function validarTarifa(t) {
+  const out = {};
+  for (const k of Object.keys(DEFAULT_TARIFA)) {
+    const v = Number(t?.[k]);
+    if (!Number.isFinite(v) || v < 0 || v > 100000) throw new Error(`«${k}» debe ser un número válido (0 o mayor)`);
     out[k] = v;
   }
   return out;
@@ -92,10 +102,10 @@ const rutas = {
   'GET /api/destinos': async () => wa.listarDestinos(),
 
   'POST /api/calcular': async (body) => {
-    const { supuestos } = leerConfig();
-    const r = calcular({ usdBrl: Number(body.usdBrl), cupUsd: Number(body.cupUsd) }, supuestos);
+    const { supuestos, tarifa } = leerConfig();
+    const r = calcular({ usdBrl: Number(body.usdBrl), cupUsd: Number(body.cupUsd) }, supuestos, tarifa);
     const turno = body.turno || turnoActual();
-    return { ...r, mensaje: armarMensaje(r, { turno }) };
+    return { ...r, mensaje: armarMensaje(r, { turno, tarifa }) };
   },
 
   'POST /api/config': async (body) => {
@@ -103,6 +113,7 @@ const rutas = {
     const nuevo = {
       destinoId: typeof body.destinoId === 'string' ? body.destinoId : actual.destinoId,
       supuestos: body.supuestos ? validarSupuestos(body.supuestos) : actual.supuestos,
+      tarifa: body.tarifa ? validarTarifa(body.tarifa) : actual.tarifa,
     };
     guardarConfig(nuevo);
     return nuevo;

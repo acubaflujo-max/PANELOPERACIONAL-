@@ -9,7 +9,10 @@ const DEFAULT_SUPUESTOS = {
   cushion: 0.015, // B12 colchón por volatilidad
 };
 
-function calcular({ usdBrl, cupUsd }, s = DEFAULT_SUPUESTOS) {
+// Tramos por monto en reales. Los envíos por debajo del umbral usan una tasa más baja (restaCup menos CUP por BRL).
+const DEFAULT_TARIFA = { montoMinimoBrl: 20, umbralBrl: 100, restaCup: 2 };
+
+function calcular({ usdBrl, cupUsd }, s = DEFAULT_SUPUESTOS, tarifa = DEFAULT_TARIFA) {
   if (!(usdBrl > 0) || !(cupUsd > 0)) {
     throw new Error('USD/BRL y CUP por USD deben ser números mayores que 0');
   }
@@ -19,7 +22,8 @@ function calcular({ usdBrl, cupUsd }, s = DEFAULT_SUPUESTOS) {
   const brlPorUsd =
     ((usdBrl * (1 + s.spreadUsd)) / ((1 - s.pixFee) * (1 - s.partnerFeeUsd))) *
     (1 + s.margin + s.cushion);
-  return { equilibrio, tasaCup, brlPorUsd };
+  const tasaPequena = Math.max(Math.floor((tasaCup - (tarifa.restaCup || 0)) * 2) / 2, 0);
+  return { equilibrio, tasaCup, tasaPequena, brlPorUsd };
 }
 
 function turnoActual(fecha = new Date()) {
@@ -30,7 +34,7 @@ function turnoActual(fecha = new Date()) {
 const fmt = (n, dec) => n.toFixed(dec).replace('.', ',');
 
 // Solo se publica la tasa de envío en CUP por real; la entrega en USD no se anuncia.
-function armarMensaje({ tasaCup }, { turno, fecha = new Date() }) {
+function armarMensaje({ tasaCup, tasaPequena }, { turno, fecha = new Date(), tarifa = DEFAULT_TARIFA }) {
   const dd = String(fecha.getDate()).padStart(2, '0');
   const mm = String(fecha.getMonth() + 1).padStart(2, '0');
   return [
@@ -38,11 +42,13 @@ function armarMensaje({ tasaCup }, { turno, fecha = new Date() }) {
     `📅 ${dd}/${mm} · Turno ${turno}`,
     '',
     '💱 *Envío en CUP*',
-    `1 BRL = *${fmt(tasaCup, 1)} CUP*`,
+    `Desde ${tarifa.umbralBrl} BRL: 1 BRL = *${fmt(tasaCup, 1)} CUP*`,
+    `Menos de ${tarifa.umbralBrl} BRL: 1 BRL = *${fmt(tasaPequena, 1)} CUP*`,
+    `Envío mínimo: ${tarifa.montoMinimoBrl} BRL`,
     '',
     'Tasa vigente hasta la próxima actualización.',
     'Escríbenos para hacer tu envío ✉️',
   ].join('\n');
 }
 
-module.exports = { DEFAULT_SUPUESTOS, calcular, turnoActual, armarMensaje };
+module.exports = { DEFAULT_SUPUESTOS, DEFAULT_TARIFA, calcular, turnoActual, armarMensaje };
