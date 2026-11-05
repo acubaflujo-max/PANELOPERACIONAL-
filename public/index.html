@@ -136,14 +136,14 @@
 
   <section>
     <details>
-      <summary>Supuestos (los mismos de la hoja Supuestos del Excel)</summary>
-      <div class="fila" style="margin-top:12px" id="supuestos"></div>
-      <div class="acciones"><button class="sec" id="btnGuardar">Guardar supuestos</button></div>
-      <p class="nota">Valores como fracción: 0.03 = 3 %.</p>
+      <summary>Supuestos y ajustes (comisiones, margen, tramos y enlace)</summary>
+      <h2 style="margin-top:14px">Comisiones y margen (en %)</h2>
+      <div class="fila" id="supuestos"></div>
       <h2 style="margin-top:16px">Tramos por monto</h2>
       <div class="fila" id="tarifa"></div>
       <div style="margin-top:12px"><label for="enlace">Enlace del grupo (va al pie del mensaje)</label><input id="enlace" type="url"></div>
-      <div class="acciones"><button class="sec" id="btnTarifa">Guardar tramos y enlace</button></div>
+      <div class="acciones"><button id="btnGuardar">Guardar todo</button><span id="msgAjustes"></span></div>
+      <p class="nota">Los porcentajes se escriben normales: 3 = 3 %. Al guardar, el mensaje se recalcula.</p>
     </details>
   </section>
 </main>
@@ -154,7 +154,6 @@ const SUPUESTOS = {
   spreadUsd: 'Spread al convertir BRL a USD',
   pixFee: 'Comisión de cobro PIX/banco',
   partnerFeeCup: 'Comisión del socio (entrega CUP)',
-  partnerFeeUsd: 'Comisión del socio (entrega USD)',
   margin: 'Margen objetivo',
   cushion: 'Colchón por volatilidad',
 };
@@ -179,10 +178,18 @@ function aviso(texto, ok) {
   $('msg').className = ok ? 'ok' : 'err';
 }
 
+let supuestosGuardados = {};
+// En el panel los supuestos se ven en %; el servidor los guarda como fracción (3 % = 0.03).
 function dibujarSupuestos(s) {
+  supuestosGuardados = s;
   $('supuestos').innerHTML = Object.entries(SUPUESTOS).map(([k, t]) =>
-    `<div><label>${t}</label><input data-k="${k}" type="number" step="0.001" min="0" max="0.99" value="${s[k]}"></div>`
+    `<div><label>${t}</label><input data-k="${k}" type="number" step="0.1" min="0" max="99" value="${+(s[k] * 100).toFixed(4)}"></div>`
   ).join('');
+}
+
+function avisoAjustes(texto, ok) {
+  $('msgAjustes').textContent = texto;
+  $('msgAjustes').className = ok ? 'ok' : 'err';
 }
 
 function dibujarTarifa(t) {
@@ -280,18 +287,19 @@ $('btnRef').onclick = async () => {
 };
 
 $('btnGuardar').onclick = async () => {
-  const s = {};
-  document.querySelectorAll('#supuestos input').forEach((i) => { s[i.dataset.k] = parseFloat(i.value); });
-  try { await api('/api/config', { supuestos: s }); aviso('Supuestos guardados', true); calcular(); }
-  catch (e) { aviso(e.message, false); }
-};
-
-$('btnTarifa').onclick = async () => {
+  // La comisión en USD ya no se anuncia ni se edita: se conserva el valor guardado.
+  const s = { ...supuestosGuardados };
+  document.querySelectorAll('#supuestos input').forEach((i) => { s[i.dataset.k] = +(parseFloat(i.value) / 100).toFixed(6); });
   const t = {};
   document.querySelectorAll('#tarifa input').forEach((i) => { t[i.dataset.t] = parseFloat(i.value); });
-  try { await api('/api/config', { tarifa: t, enlace: $('enlace').value }); aviso('Tramos y enlace guardados', true); calcular(); }
-  catch (e) { aviso(e.message, false); }
+  try {
+    const nuevo = await api('/api/config', { supuestos: s, tarifa: t, enlace: $('enlace').value });
+    supuestosGuardados = nuevo.supuestos;
+    avisoAjustes('✅ Guardado ' + new Date().toLocaleTimeString(), true);
+    calcular();
+  } catch (e) { avisoErrorAjustes(e); }
 };
+function avisoErrorAjustes(e) { avisoAjustes(e.message.replace(/\(ej\. 0\.03 = 3%\)/, ''), false); }
 
 $('btnEnviar').onclick = async () => {
   const nombre = $('destino').selectedOptions[0].textContent;
