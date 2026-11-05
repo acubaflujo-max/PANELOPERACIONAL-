@@ -12,7 +12,7 @@ const DEFAULT_SUPUESTOS = {
 // Tramos por monto en reales. Los envíos por debajo del umbral usan una tasa más baja (restaCup menos CUP por BRL).
 const DEFAULT_TARIFA = { montoMinimoBrl: 20, umbralBrl: 100, restaCup: 2 };
 
-const DEFAULT_ENLACE = 'https://chat.whatsapp.com/BqEx2v7M5QV5HAZSLwXk5I';
+const DEFAULT_ENLACE = 'https://chat.whatsapp.com/Bt9vc5sUWGiDJIo84A5viX';
 
 function calcular({ usdBrl, cupUsd }, s = DEFAULT_SUPUESTOS, tarifa = DEFAULT_TARIFA) {
   if (!(usdBrl > 0) || !(cupUsd > 0)) {
