@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flujo Cuba · Tasas del día</title>
+<style>
+  :root {
+    --azul: #0E3A8C; --azul-osc: #061B4A; --rojo: #E8283A;
+    --bg: #f3f5fa; --card: #fff; --txt: #14203a; --suave: #5b6783; --borde: #d9deea;
+    --ok: #1a8a4a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #0b1226; --card: #131c36; --txt: #e8ecf7; --suave: #93a0c0; --borde: #26325a; }
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin: 0; font: 15px/1.45 system-ui, sans-serif; background: var(--bg); color: var(--txt); }
+  header { background: linear-gradient(135deg, var(--azul), var(--azul-osc)); color: #fff; padding: 18px 16px; border-bottom: 4px solid var(--rojo); }
+  header h1 { margin: 0; font-size: 20px; }
+  header p { margin: 2px 0 0; opacity: .8; font-size: 13px; }
+  main { max-width: 760px; margin: 0 auto; padding: 16px; display: grid; gap: 14px; }
+  section { background: var(--card); border: 1px solid var(--borde); border-radius: 12px; padding: 16px; }
+  h2 { margin: 0 0 12px; font-size: 15px; color: var(--azul); }
+  @media (prefers-color-scheme: dark) { h2 { color: #8fb0ff; } }
+  .fila { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+  label { display: block; font-size: 12px; color: var(--suave); margin-bottom: 4px; }
+  input, select, textarea { width: 100%; padding: 9px 10px; font: inherit; color: var(--txt); background: var(--bg); border: 1px solid var(--borde); border-radius: 8px; }
+  textarea { min-height: 220px; resize: vertical; font-family: ui-monospace, Consolas, monospace; font-size: 14px; }
+  button { font: inherit; font-weight: 600; padding: 9px 14px; border: 0; border-radius: 8px; cursor: pointer; background: var(--azul); color: #fff; }
+  button.sec { background: transparent; color: var(--azul); border: 1px solid var(--borde); }
+  @media (prefers-color-scheme: dark) { button.sec { color: #8fb0ff; } }
+  button.enviar { background: var(--rojo); }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  .acciones { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; align-items: center; }
+  .res { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 14px; }
+  .kpi { background: var(--bg); border-radius: 8px; padding: 10px 12px; }
+  .kpi b { display: block; font-size: 22px; }
+  .kpi span { font-size: 12px; color: var(--suave); }
+  .estado { font-size: 13px; padding: 8px 12px; border-radius: 8px; background: var(--bg); }
+  .estado.listo { color: var(--ok); }
+  .estado.error { color: var(--rojo); }
+  #qr { display: block; margin: 10px 0 0; border-radius: 8px; background: #fff; }
+  #msg { font-size: 13px; min-height: 1.3em; }
+  .ok { color: var(--ok); } .err { color: var(--rojo); }
+  details summary { cursor: pointer; font-weight: 600; color: var(--azul); }
+  .nota { font-size: 12px; color: var(--suave); margin: 8px 0 0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🇧🇷 Flujo Cuba Remesas 🇨🇺</h1>
+  <p>Panel de tasas del día</p>
+</header>
+<main>
+  <section>
+    <h2>1 · WhatsApp</h2>
+    <div id="wa" class="estado">Conectando…</div>
+    <img id="qr" alt="QR de WhatsApp" hidden>
+    <details id="evo" style="margin-top:12px">
+      <summary>Conexión con Evolution API</summary>
+      <div class="fila" style="margin-top:12px">
+        <div><label for="evoUrl">URL del servidor (ej. http://localhost:8080)</label><input id="evoUrl" type="url"></div>
+        <div><label for="evoKey">Apikey <span id="evoKeyNota"></span></label><input id="evoKey" type="password" autocomplete="off"></div>
+        <div><label for="evoInst">Nombre de la instancia</label><input id="evoInst" value="flujo-cuba"></div>
+      </div>
+      <div class="acciones"><button class="sec" id="btnEvo">Guardar conexión</button></div>
+      <p class="nota">Se guarda en tu PC (fuera de Drive). Si la instancia no existe, se crea y aparece el QR.</p>
+    </details>
+  </section>
+
+  <section>
+    <h2>📈 Mercado · USDT/BRL en Binance</h2>
+    <div class="acciones" style="margin:0 0 10px">
+      <button class="sec" data-rango="24">24 h</button>
+      <button class="sec" data-rango="168">7 días</button>
+      <button class="sec" data-rango="30d">30 días</button>
+      <button class="sec" id="btnMercado">Actualizar</button>
+      <span id="mercadoInfo" class="nota"></span>
+    </div>
+    <svg id="grafico" viewBox="0 0 700 220" role="img" aria-label="Evolución de USDT/BRL" style="width:100%;height:auto;display:block"></svg>
+    <div class="res" id="mercadoKpi" hidden>
+      <div class="kpi"><b id="mActual">–</b><span>USDT/BRL ahora</span></div>
+      <div class="kpi"><b id="m24">–</b><span>Cambio 24 h</span></div>
+      <div class="kpi"><b id="m7">–</b><span>Cambio 7 días</span></div>
+      <div class="kpi"><b id="mRango">–</b><span>Mín – máx 7 días</span></div>
+    </div>
+    <div id="senal" class="estado" style="margin-top:12px" hidden></div>
+    <p class="nota">La señal usa medias móviles, momentum y RSI sobre datos públicos de Binance. Es orientativa, no una predicción fiable: nadie acierta el mercado. Mira solo el par USDT/BRL; el CUP depende de tu socio.</p>
+  </section>
+
+  <section>
+    <h2>2 · Datos del turno</h2>
+    <div class="fila">
+      <div>
+        <label for="usdBrl">USD/BRL (reales por 1 USD)</label>
+        <input id="usdBrl" type="number" step="0.0001" min="0" inputmode="decimal">
+      </div>
+      <div>
+        <label for="cupUsd">CUP por 1 USD (el que te da tu socio)</label>
+        <input id="cupUsd" type="number" step="0.5" min="0" inputmode="decimal">
+      </div>
+      <div>
+        <label for="turno">Turno</label>
+        <select id="turno"><option>Mañana</option><option>Tarde</option><option>Noche</option></select>
+      </div>
+    </div>
+    <div class="acciones">
+      <button class="sec" id="btnRef">Traer USD/BRL de referencia</button>
+      <span id="refInfo" class="nota"></span>
+    </div>
+    <div class="res" id="res" hidden>
+      <div class="kpi"><b id="kTasa">–</b><span>CUP por 1 BRL (a publicar)</span></div>
+      <div class="kpi"><b id="kUsd">–</b><span>BRL por 1 USD entregado</span></div>
+      <div class="kpi"><b id="kEq">–</b><span>Tasa de equilibrio (no dar más)</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>3 · Mensaje y envío</h2>
+    <label for="mensaje">Mensaje (puedes editarlo antes de enviar)</label>
+    <textarea id="mensaje" placeholder="Calcula la tasa para generar el mensaje"></textarea>
+    <div class="fila" style="margin-top:12px">
+      <div>
+        <label for="destino">Enviar a</label>
+        <select id="destino"><option value="">— elige grupo o canal —</option></select>
+      </div>
+    </div>
+    <div class="acciones">
+      <button class="sec" id="btnDestinos">Actualizar lista</button>
+      <button class="enviar" id="btnEnviar" disabled>Enviar a WhatsApp</button>
+      <span id="msg"></span>
+    </div>
+    <p class="nota">Nada se envía hasta que pulses «Enviar». Revisa el mensaje y el destino primero.</p>
+  </section>
+
+  <section>
+    <details>
+      <summary>Supuestos (los mismos de la hoja Supuestos del Excel)</summary>
+      <div class="fila" style="margin-top:12px" id="supuestos"></div>
+      <div class="acciones"><button class="sec" id="btnGuardar">Guardar supuestos</button></div>
+      <p class="nota">Valores como fracción: 0.03 = 3 %.</p>
+    </details>
+  </section>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const SUPUESTOS = {
+  spreadUsd: 'Spread al convertir BRL a USD',
+  pixFee: 'Comisión de cobro PIX/banco',
+  partnerFeeCup: 'Comisión del socio (entrega CUP)',
+  partnerFeeUsd: 'Comisión del socio (entrega USD)',
+  margin: 'Margen objetivo',
+  cushion: 'Colchón por volatilidad',
+};
+const fmt = (n, d) => n.toFixed(d).replace('.', ',');
+
+async function api(ruta, body) {
+  const r = await fetch(ruta, body === undefined ? {} : {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+  });
+  const j = await r.json();
+  if (!r.ok) throw new Error(j.error || 'Error');
+  return j;
+}
+
+function aviso(texto, ok) {
+  $('msg').textContent = texto;
+  $('msg').className = ok ? 'ok' : 'err';
+}
+
+function dibujarSupuestos(s) {
+  $('supuestos').innerHTML = Object.entries(SUPUESTOS).map(([k, t]) =>
+    `<div><label>${t}</label><input data-k="${k}" type="number" step="0.001" min="0" max="0.99" value="${s[k]}"></div>`
+  ).join('');
+}
+
+let conectadoAntes = false;
+async function refrescarEstado(inicial) {
+  try {
+    const { whatsapp: w, config } = await api('/api/estado');
+    const caja = $('wa');
+    const etiquetas = { sin_configurar: 'Falta conectar con Evolution API (abre «Conexión»)', iniciando: 'Iniciando WhatsApp…', qr: 'Escanea el QR: WhatsApp → Dispositivos vinculados → Vincular',
+      autenticando: 'Autenticando…', listo: '✅ WhatsApp conectado', desconectado: 'Desconectado', error: 'Error' };
+    caja.textContent = (etiquetas[w.estado] || w.estado) + (w.error ? ` — ${w.error}` : '');
+    caja.className = 'estado ' + (w.estado === 'listo' ? 'listo' : w.estado === 'error' || w.estado === 'desconectado' ? 'error' : '');
+    $('qr').hidden = !w.qr;
+    if (w.qr) $('qr').src = w.qr;
+    if (inicial) {
+      dibujarSupuestos(config.supuestos); window.destinoGuardado = config.destinoId;
+      const c = w.conf || {};
+      $('evoUrl').value = c.url || ''; if (c.instance) $('evoInst').value = c.instance;
+      $('evoKeyNota').textContent = c.tieneKey ? '(ya guardada; déjala vacía para conservarla)' : '';
+      $('evo').open = w.estado === 'sin_configurar' || w.estado === 'error';
+    }
+    if (w.estado === 'listo' && !conectadoAntes) { conectadoAntes = true; cargarDestinos(); }
+    if (w.estado !== 'listo') conectadoAntes = false;
+  } catch { $('wa').textContent = 'El servidor no responde'; $('wa').className = 'estado error'; }
+}
+
+async function cargarDestinos() {
+  try {
+    const lista = await api('/api/destinos');
+    $('destino').innerHTML = '<option value="">— elige grupo o canal —</option>' +
+      lista.map((d) => `<option value="${d.id}">${d.tipo}: ${d.nombre.replace(/</g, '&lt;')}</option>`).join('');
+    if (window.destinoGuardado) $('destino').value = window.destinoGuardado;
+    actualizarBoton();
+  } catch (e) { aviso(e.message, false); }
+}
+
+function turnoAuto() {
+  const h = new Date().getHours();
+  $('turno').value = h < 12 ? 'Mañana' : h < 18 ? 'Tarde' : 'Noche';
+}
+
+async function calcular() {
+  const usdBrl = parseFloat($('usdBrl').value), cupUsd = parseFloat($('cupUsd').value);
+  if (!(usdBrl > 0) || !(cupUsd > 0)) { $('res').hidden = true; return; }
+  try {
+    const r = await api('/api/calcular', { usdBrl, cupUsd, turno: $('turno').value });
+    $('kTasa').textContent = fmt(r.tasaCup, 1) + ' CUP';
+    $('kUsd').textContent = fmt(r.brlPorUsd, 2) + ' BRL';
+    $('kEq').textContent = fmt(r.equilibrio, 2) + ' CUP';
+    $('res').hidden = false;
+    $('mensaje').value = r.mensaje;
+    aviso('', true);
+  } catch (e) { aviso(e.message, false); }
+  actualizarBoton();
+}
+
+function actualizarBoton() {
+  $('btnEnviar').disabled = !($('mensaje').value.trim() && $('destino').value);
+}
+
+let t;
+for (const id of ['usdBrl', 'cupUsd', 'turno']) {
+  $(id).addEventListener('input', () => { clearTimeout(t); t = setTimeout(calcular, 250); });
+}
+$('mensaje').addEventListener('input', actualizarBoton);
+$('destino').addEventListener('change', async () => {
+  window.destinoGuardado = $('destino').value;
+  actualizarBoton();
+  try { await api('/api/config', { destinoId: $('destino').value }); } catch {}
+});
+$('btnDestinos').onclick = cargarDestinos;
+
+$('btnEvo').onclick = async () => {
+  try {
+    await api('/api/evolution', { url: $('evoUrl').value, apikey: $('evoKey').value, instance: $('evoInst').value });
+    $('evoKey').value = '';
+    $('wa').textContent = 'Conexión guardada, consultando…';
+    refrescarEstado(false);
+  } catch (e) { $('wa').textContent = e.message; $('wa').className = 'estado error'; }
+};
+
+$('btnRef').onclick = async () => {
+  $('refInfo').textContent = 'Consultando…';
+  try {
+    const r = await api('/api/usdbrl');
+    $('usdBrl').value = r.valor.toFixed(4);
+    $('refInfo').textContent = `${r.fuente}. Es referencia: ajústala a tu cotización real.`;
+    calcular();
+  } catch (e) { $('refInfo').textContent = e.message; }
+};
+
+$('btnGuardar').onclick = async () => {
+  const s = {};
+  document.querySelectorAll('#supuestos input').forEach((i) => { s[i.dataset.k] = parseFloat(i.value); });
+  try { await api('/api/config', { supuestos: s }); aviso('Supuestos guardados', true); calcular(); }
+  catch (e) { aviso(e.message, false); }
+};
+
+$('btnEnviar').onclick = async () => {
+  const nombre = $('destino').selectedOptions[0].textContent;
+  if (!confirm(`¿Enviar este mensaje a «${nombre}»?`)) return;
+  $('btnEnviar').disabled = true;
+  try {
+    await api('/api/enviar', { destinoId: $('destino').value, mensaje: $('mensaje').value });
+    aviso('✅ Enviado ' + new Date().toLocaleTimeString(), true);
+  } catch (e) { aviso(e.message, false); }
+  actualizarBoton();
+};
+
+let mercado = null, rango = '168';
+
+function dibujarGrafico() {
+  const svg = $('grafico');
+  if (!mercado) return;
+  const filas = rango === '30d' ? mercado.dias : mercado.horas.slice(-Number(rango));
+  const W = 700, H = 220, m = { l: 52, r: 10, t: 10, b: 22 };
+  const v = filas.map((f) => f.c);
+  const min = Math.min(...v), max = Math.max(...v);
+  const pad = (max - min || max * 0.01) * 0.1;
+  const lo = min - pad, hi = max + pad;
+  const x = (i) => m.l + (i / (filas.length - 1)) * (W - m.l - m.r);
+  const y = (val) => m.t + (1 - (val - lo) / (hi - lo)) * (H - m.t - m.b);
+  const sube = v.at(-1) >= v[0];
+  const color = sube ? '#E8283A' : '#1a8a4a'; // sube USDT/BRL = el real se debilita
+  const linea = filas.map((f, i) => `${x(i).toFixed(1)},${y(f.c).toFixed(1)}`).join(' ');
+  const guias = [0, 0.5, 1].map((p) => {
+    const val = lo + (hi - lo) * p;
+    return `<line x1="${m.l}" x2="${W - m.r}" y1="${y(val).toFixed(1)}" y2="${y(val).toFixed(1)}" stroke="currentColor" opacity=".15"/>` +
+      `<text x="${m.l - 6}" y="${(y(val) + 4).toFixed(1)}" text-anchor="end" font-size="11" fill="currentColor" opacity=".7">${fmt(val, 3)}</text>`;
+  }).join('');
+  const fecha = (t) => new Date(t).toLocaleDateString('es', rango === '24' ? { hour: '2-digit' } : { day: 'numeric', month: 'short' });
+  svg.innerHTML = guias +
+    `<polygon points="${m.l},${H - m.b} ${linea} ${W - m.r},${H - m.b}" fill="${color}" opacity=".12"/>` +
+    `<polyline points="${linea}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round"/>` +
+    `<text x="${m.l}" y="${H - 6}" font-size="11" fill="currentColor" opacity=".7">${fecha(filas[0].t)}</text>` +
+    `<text x="${W - m.r}" y="${H - 6}" text-anchor="end" font-size="11" fill="currentColor" opacity=".7">${fecha(filas.at(-1).t)}</text>`;
+  svg.style.color = getComputedStyle(document.body).color;
+  document.querySelectorAll('[data-rango]').forEach((b) => { b.style.fontWeight = b.dataset.rango === rango ? '800' : '600'; b.style.borderColor = b.dataset.rango === rango ? 'var(--azul)' : ''; });
+}
+
+async function cargarMercado() {
+  $('mercadoInfo').textContent = 'Consultando Binance…';
+  try {
+    mercado = await api('/api/mercado');
+    const s = mercado.senal;
+    const sg = (n) => (n > 0 ? '+' : '') + fmt(n, 2) + ' %';
+    $('mActual').textContent = fmt(s.actual, 3);
+    $('m24').textContent = sg(s.cambio24h);
+    $('m7').textContent = sg(s.cambio7d);
+    $('mRango').textContent = `${fmt(s.min7d, 2)} – ${fmt(s.max7d, 2)}`;
+    $('mercadoKpi').hidden = false;
+    const icono = { subir: '🔺 Tendencia a SUBIR', bajar: '🔻 Tendencia a BAJAR', lateral: '➖ Mercado LATERAL' }[s.direccion];
+    const caja = $('senal');
+    caja.hidden = false;
+    caja.innerHTML = `<b>${icono}</b> · confianza ${s.confianza}` +
+      `<ul style="margin:6px 0 0;padding-left:18px">${s.razones.map((r) => `<li>${r.replace(/</g, '&lt;')}</li>`).join('')}</ul>` +
+      `<p style="margin:8px 0 0">${mercado.implicacion}</p>`;
+    $('mercadoInfo').textContent = 'Actualizado ' + new Date(mercado.actualizado).toLocaleTimeString();
+    dibujarGrafico();
+  } catch (e) { $('mercadoInfo').textContent = e.message; }
+}
+
+document.querySelectorAll('[data-rango]').forEach((b) => { b.onclick = () => { rango = b.dataset.rango; dibujarGrafico(); }; });
+$('btnMercado').onclick = cargarMercado;
+
+turnoAuto();
+cargarMercado();
+setInterval(cargarMercado, 5 * 60_000);
+refrescarEstado(true);
+setInterval(() => refrescarEstado(false), 3000);
+</script>
+</body>
+</html>
