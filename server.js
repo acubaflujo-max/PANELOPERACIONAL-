@@ -1,7 +1,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const { DEFAULT_SUPUESTOS, DEFAULT_TARIFA, calcular, turnoActual, armarMensaje } = require('./src/calc');
+const { DEFAULT_SUPUESTOS, DEFAULT_TARIFA, DEFAULT_ENLACE, calcular, turnoActual, armarMensaje } = require('./src/calc');
 const { obtenerUsdBrl } = require('./src/rates');
 const { obtenerMercado } = require('./src/mercado');
 const wa = require('./src/whatsapp');
@@ -38,9 +38,9 @@ const INDEX = path.join(__dirname, 'public', 'index.html');
 function leerConfig() {
   try {
     const c = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
-    return { destinoId: c.destinoId || '', supuestos: { ...DEFAULT_SUPUESTOS, ...c.supuestos }, tarifa: { ...DEFAULT_TARIFA, ...c.tarifa } };
+    return { destinoId: c.destinoId || '', supuestos: { ...DEFAULT_SUPUESTOS, ...c.supuestos }, tarifa: { ...DEFAULT_TARIFA, ...c.tarifa }, enlace: c.enlace || DEFAULT_ENLACE };
   } catch {
-    return { destinoId: '', supuestos: { ...DEFAULT_SUPUESTOS }, tarifa: { ...DEFAULT_TARIFA } };
+    return { destinoId: '', supuestos: { ...DEFAULT_SUPUESTOS }, tarifa: { ...DEFAULT_TARIFA }, enlace: DEFAULT_ENLACE };
   }
 }
 
@@ -102,10 +102,10 @@ const rutas = {
   'GET /api/destinos': async () => wa.listarDestinos(),
 
   'POST /api/calcular': async (body) => {
-    const { supuestos, tarifa } = leerConfig();
+    const { supuestos, tarifa, enlace } = leerConfig();
     const r = calcular({ usdBrl: Number(body.usdBrl), cupUsd: Number(body.cupUsd) }, supuestos, tarifa);
     const turno = body.turno || turnoActual();
-    return { ...r, mensaje: armarMensaje(r, { turno, tarifa }) };
+    return { ...r, mensaje: armarMensaje(r, { turno, tarifa, enlace }) };
   },
 
   'POST /api/config': async (body) => {
@@ -114,7 +114,13 @@ const rutas = {
       destinoId: typeof body.destinoId === 'string' ? body.destinoId : actual.destinoId,
       supuestos: body.supuestos ? validarSupuestos(body.supuestos) : actual.supuestos,
       tarifa: body.tarifa ? validarTarifa(body.tarifa) : actual.tarifa,
+      enlace: actual.enlace,
     };
+    if (typeof body.enlace === 'string') {
+      const e = body.enlace.trim();
+      if (!/^https:\/\/chat\.whatsapp\.com\/[A-Za-z0-9]+$/.test(e)) throw new Error('El enlace debe ser de la forma https://chat.whatsapp.com/…');
+      nuevo.enlace = e;
+    }
     guardarConfig(nuevo);
     return nuevo;
   },

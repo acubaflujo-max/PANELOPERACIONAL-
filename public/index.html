@@ -142,7 +142,8 @@
       <p class="nota">Valores como fracción: 0.03 = 3 %.</p>
       <h2 style="margin-top:16px">Tramos por monto</h2>
       <div class="fila" id="tarifa"></div>
-      <div class="acciones"><button class="sec" id="btnTarifa">Guardar tramos</button></div>
+      <div style="margin-top:12px"><label for="enlace">Enlace del grupo (va al pie del mensaje)</label><input id="enlace" type="url"></div>
+      <div class="acciones"><button class="sec" id="btnTarifa">Guardar tramos y enlace</button></div>
     </details>
   </section>
 </main>
@@ -202,7 +203,7 @@ async function refrescarEstado(inicial) {
     $('qr').hidden = !w.qr;
     if (w.qr) $('qr').src = w.qr;
     if (inicial) {
-      dibujarSupuestos(config.supuestos); dibujarTarifa(config.tarifa); window.destinoGuardado = config.destinoId;
+      dibujarSupuestos(config.supuestos); dibujarTarifa(config.tarifa); $('enlace').value = config.enlace; window.destinoGuardado = config.destinoId;
       const c = w.conf || {};
       $('evoUrl').value = c.url || ''; if (c.instance) $('evoInst').value = c.instance;
       $('evoKeyNota').textContent = c.tieneKey ? '(ya guardada; déjala vacía para conservarla)' : '';
@@ -288,7 +289,7 @@ $('btnGuardar').onclick = async () => {
 $('btnTarifa').onclick = async () => {
   const t = {};
   document.querySelectorAll('#tarifa input').forEach((i) => { t[i.dataset.t] = parseFloat(i.value); });
-  try { await api('/api/config', { tarifa: t }); aviso('Tramos guardados', true); calcular(); }
+  try { await api('/api/config', { tarifa: t, enlace: $('enlace').value }); aviso('Tramos y enlace guardados', true); calcular(); }
   catch (e) { aviso(e.message, false); }
 };
 

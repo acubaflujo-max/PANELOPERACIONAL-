@@ -12,6 +12,8 @@ const DEFAULT_SUPUESTOS = {
 // Tramos por monto en reales. Los envíos por debajo del umbral usan una tasa más baja (restaCup menos CUP por BRL).
 const DEFAULT_TARIFA = { montoMinimoBrl: 20, umbralBrl: 100, restaCup: 2 };
 
+const DEFAULT_ENLACE = 'https://chat.whatsapp.com/BqEx2v7M5QV5HAZSLwXk5I';
+
 function calcular({ usdBrl, cupUsd }, s = DEFAULT_SUPUESTOS, tarifa = DEFAULT_TARIFA) {
   if (!(usdBrl > 0) || !(cupUsd > 0)) {
     throw new Error('USD/BRL y CUP por USD deben ser números mayores que 0');
@@ -34,7 +36,7 @@ function turnoActual(fecha = new Date()) {
 const fmt = (n, dec) => n.toFixed(dec).replace('.', ',');
 
 // Solo se publica la tasa de envío en CUP por real; la entrega en USD no se anuncia.
-function armarMensaje({ tasaCup, tasaPequena }, { turno, fecha = new Date(), tarifa = DEFAULT_TARIFA }) {
+function armarMensaje({ tasaCup, tasaPequena }, { turno, fecha = new Date(), tarifa = DEFAULT_TARIFA, enlace = DEFAULT_ENLACE }) {
   const dd = String(fecha.getDate()).padStart(2, '0');
   const mm = String(fecha.getMonth() + 1).padStart(2, '0');
   return [
@@ -48,7 +50,10 @@ function armarMensaje({ tasaCup, tasaPequena }, { turno, fecha = new Date(), tar
     '',
     'Tasa vigente hasta la próxima actualización.',
     'Escríbenos para hacer tu envío ✉️',
+    '',
+    '👥 Puedes unir a cualquier persona al grupo con este enlace:',
+    enlace,
   ].join('\n');
 }
 
-module.exports = { DEFAULT_SUPUESTOS, DEFAULT_TARIFA, calcular, turnoActual, armarMensaje };
+module.exports = { DEFAULT_SUPUESTOS, DEFAULT_TARIFA, DEFAULT_ENLACE, calcular, turnoActual, armarMensaje };

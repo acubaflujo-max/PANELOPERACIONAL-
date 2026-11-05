@@ -30,6 +30,7 @@ test('el mensaje usa coma decimal y el turno', () => {
   assert.doesNotMatch(m, /USD/);
   assert.match(m, /Menos de 100 BRL: 1 BRL = \*72,0 CUP\*/);
   assert.match(m, /Envío mínimo: 20 BRL/);
+  assert.match(m, /unir a cualquier persona[^\n]*\nhttps:\/\/chat\.whatsapp\.com\/\w+$/);
 });
 
 test('turno según la hora', () => {
