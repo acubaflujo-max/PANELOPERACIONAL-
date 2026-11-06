@@ -5,6 +5,9 @@ const { DEFAULT_SUPUESTOS, DEFAULT_TARIFA, DEFAULT_ENLACE, calcular, turnoActual
 const { obtenerUsdBrl } = require('./src/rates');
 const { obtenerMercado } = require('./src/mercado');
 const wa = require('./src/whatsapp');
+const erp = require('./src/erp');
+const { crearAlmacen } = require('./src/libro');
+const supabase = require('./src/supabase');
 
 const crypto = require('crypto');
 
@@ -13,6 +16,8 @@ const HOST = process.env.HOST || '127.0.0.1';
 const PANEL_PASSWORD = process.env.PANEL_PASSWORD || '';
 const DATA_DIR = process.env.FLUJOBOT_DATA || __dirname;
 const CONFIG_PATH = path.join(DATA_DIR, 'config.json');
+const almacen = crearAlmacen(DATA_DIR);
+const ALERTA_USDT = 50;
 
 // Fuera de localhost el panel exige contraseña: con la apikey detrás, cualquiera podría enviar por tu WhatsApp.
 if (HOST !== '127.0.0.1' && HOST !== 'localhost' && !PANEL_PASSWORD) {
@@ -38,10 +43,21 @@ const INDEX = path.join(__dirname, 'public', 'index.html');
 function leerConfig() {
   try {
     const c = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
-    return { destinoId: c.destinoId || '', supuestos: { ...DEFAULT_SUPUESTOS, ...c.supuestos }, tarifa: { ...DEFAULT_TARIFA, ...c.tarifa }, enlace: c.enlace || DEFAULT_ENLACE };
+    return { destinoId: c.destinoId || '', supuestos: { ...DEFAULT_SUPUESTOS, ...c.supuestos }, tarifa: { ...DEFAULT_TARIFA, ...c.tarifa }, enlace: c.enlace || DEFAULT_ENLACE,
+      alertaUsdt: Number.isFinite(c.alertaUsdt) ? c.alertaUsdt : ALERTA_USDT };
   } catch {
-    return { destinoId: '', supuestos: { ...DEFAULT_SUPUESTOS }, tarifa: { ...DEFAULT_TARIFA }, enlace: DEFAULT_ENLACE };
+    return { destinoId: '', supuestos: { ...DEFAULT_SUPUESTOS }, tarifa: { ...DEFAULT_TARIFA }, enlace: DEFAULT_ENLACE, alertaUsdt: ALERTA_USDT };
   }
+}
+
+async function estadoErp(datos) {
+  const { supuestos, alertaUsdt } = leerConfig();
+  return erp.calcularLibro(datos || await almacen.leer(), supuestos, { alertaUsdt });
+}
+
+async function respuestaErp() {
+  const datos = await almacen.leer();
+  return { datos, calculo: await estadoErp(datos), db: supabase.estado() };
 }
 
 function guardarConfig(c) {
@@ -105,7 +121,10 @@ const rutas = {
     const { supuestos, tarifa, enlace } = leerConfig();
     const r = calcular({ usdBrl: Number(body.usdBrl), cupUsd: Number(body.cupUsd) }, supuestos, tarifa);
     const turno = body.turno || turnoActual();
-    return { ...r, mensaje: armarMensaje(r, { turno, tarifa, enlace }) };
+    // Además del mercado, se compara con lo que de verdad costó el USDT del lote activo.
+    let lote = null, avisoDb = null;
+    try { lote = erp.loteActivo(await almacen.leer(), supuestos); } catch (e) { avisoDb = e.message; }
+    return { ...r, lote, avisoDb, mensaje: armarMensaje(r, { turno, tarifa, enlace }) };
   },
 
   'POST /api/config': async (body) => {
@@ -115,7 +134,13 @@ const rutas = {
       supuestos: body.supuestos ? validarSupuestos(body.supuestos) : actual.supuestos,
       tarifa: body.tarifa ? validarTarifa(body.tarifa) : actual.tarifa,
       enlace: actual.enlace,
+      alertaUsdt: actual.alertaUsdt,
     };
+    if (body.alertaUsdt !== undefined) {
+      const a = Number(body.alertaUsdt);
+      if (!Number.isFinite(a) || a < 0 || a > 1e7) throw new Error('La alerta de USDT debe ser un número válido (0 o mayor)');
+      nuevo.alertaUsdt = a;
+    }
     if (typeof body.enlace === 'string') {
       const e = body.enlace.trim();
       if (!/^https:\/\/chat\.whatsapp\.com\/[A-Za-z0-9]+$/.test(e)) throw new Error('El enlace debe ser de la forma https://chat.whatsapp.com/…');
@@ -132,6 +157,50 @@ const rutas = {
     await wa.enviar(body.destinoId, texto);
     return { ok: true };
   },
+
+  // ---- ERP: lotes, envíos, gastos, tasas publicadas ----
+  'GET /api/erp': async () => respuestaErp(),
+
+  'POST /api/erp/guardar': async (body) => {
+    const item = await almacen.guardar(body.coleccion, body.item || {});
+    return { item, ...(await respuestaErp()) };
+  },
+
+  'POST /api/erp/borrar': async (body) => {
+    await almacen.borrar(body.coleccion, String(body.id || ''));
+    return respuestaErp();
+  },
+
+  // Calcula costo y ganancia de un envío sin guardarlo (vista previa del formulario).
+  'POST /api/erp/simular': async (body) => {
+    const { supuestos } = leerConfig();
+    const datos = await almacen.leer();
+    const item = erp.guardarItem(datos, 'envios', { ...body.item, estado: 'Pendiente' });
+    return erp.calcularLibro(datos, supuestos).envios.find((e) => e.id === item.id);
+  },
+
+  'GET /api/erp/exportar': async (_body, url) => {
+    const que = url.searchParams.get('c') || '';
+    const csv = erp.exportar(await estadoErp(), que);
+    return { __csv: csv, nombre: `flujo-${que}-${new Date().toISOString().slice(0, 10)}.csv` };
+  },
+
+  // ---- Base de datos: archivo local o Supabase ----
+  'GET /api/db': async () => supabase.estado(),
+
+  'POST /api/db': async (body) => {
+    const conf = supabase.normalizarConf(body);
+    const filas = await supabase.probar(conf); // solo se guarda si la conexión funciona
+    supabase.guardarConf(conf);
+    return { ...supabase.estado(), filas };
+  },
+
+  'POST /api/db/desconectar': async () => {
+    supabase.borrarConf();
+    return supabase.estado();
+  },
+
+  'POST /api/db/subir-local': async () => ({ subidos: await almacen.subirLocal(), ...supabase.estado() }),
 };
 
 const server = http.createServer(async (req, res) => {
@@ -153,7 +222,8 @@ const server = http.createServer(async (req, res) => {
       return res.end(fs.readFileSync(INDEX));
     }
 
-    const handler = rutas[`${req.method} ${req.url.split('?')[0]}`];
+    const url = new URL(req.url, 'http://localhost');
+    const handler = rutas[`${req.method} ${url.pathname}`];
     if (!handler) return responder(res, 404, { error: 'No encontrado' });
 
     let body = {};
@@ -163,7 +233,12 @@ const server = http.createServer(async (req, res) => {
       }
       body = await leerJson(req);
     }
-    responder(res, 200, await handler(body));
+    const resultado = await handler(body, url);
+    if (resultado && resultado.__csv !== undefined) {
+      res.writeHead(200, { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="${resultado.nombre}"` });
+      return res.end(resultado.__csv);
+    }
+    responder(res, 200, resultado);
   } catch (e) {
     responder(res, 400, { error: e.message });
   }

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Flujo Cuba · Tasas del día</title>
+<title>Flujo Cuba · Panel</title>
 <style>
   :root {
     --azul: #0E3A8C; --azul-osc: #061B4A; --rojo: #E8283A;
@@ -33,7 +33,8 @@
   button.enviar { background: var(--rojo); }
   button:disabled { opacity: .45; cursor: not-allowed; }
   .acciones { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; align-items: center; }
-  .res { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 14px; }
+  .res { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-top: 14px; }
+  @media (max-width: 480px) { .kpi b { font-size: 18px; } }
   .kpi { background: var(--bg); border-radius: 8px; padding: 10px 12px; }
   .kpi b { display: block; font-size: 22px; }
   .kpi span { font-size: 12px; color: var(--suave); }
@@ -45,14 +46,102 @@
   .ok { color: var(--ok); } .err { color: var(--rojo); }
   details summary { cursor: pointer; font-weight: 600; color: var(--azul); }
   .nota { font-size: 12px; color: var(--suave); margin: 8px 0 0; }
+
+  /* ---- ERP ---- */
+  nav { background: var(--azul-osc); display: flex; gap: 2px; overflow-x: auto; padding: 0 8px; position: sticky; top: 0; z-index: 5; }
+  nav button { background: transparent; color: #c9d5f5; border-radius: 0; padding: 11px 13px; white-space: nowrap; border-bottom: 3px solid transparent; }
+  nav button.activa { color: #fff; border-bottom-color: var(--rojo); }
+  main.ancho { max-width: 1120px; }
+  main > *, .grid2 > *, section { min-width: 0; } /* las tablas anchas se desplazan dentro de su caja, no estiran la página */
+  .tabla { overflow-x: auto; margin-top: 10px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th, td { padding: 7px 8px; border-bottom: 1px solid var(--borde); text-align: left; white-space: nowrap; }
+  th { font-size: 11px; color: var(--suave); text-transform: uppercase; letter-spacing: .03em; position: sticky; top: 0; background: var(--card); }
+  td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
+  tr.cancelado td { opacity: .45; text-decoration: line-through; }
+  tfoot td { font-weight: 700; border-top: 2px solid var(--borde); }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; background: var(--bg); }
+  .tag.ok { color: var(--ok); background: #1a8a4a1f; } .tag.err { color: var(--rojo); background: #e8283a1f; } .tag.av { color: #b26a00; background: #f5a6231f; }
+  .pos { color: var(--ok); } .neg { color: var(--rojo); }
+  .alertas { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+  .alertas li { padding: 8px 12px; border-radius: 8px; font-size: 13px; border-left: 4px solid; background: var(--bg); }
+  .alertas li.error { border-color: var(--rojo); } .alertas li.aviso { border-color: #f5a623; } .alertas li.ok { border-color: var(--ok); }
+  .kpi.verde b { color: var(--ok); } .kpi.rojo b { color: var(--rojo); }
+  .kpi small { display: block; font-size: 11px; color: var(--suave); margin-top: 2px; }
+  .mini { padding: 4px 8px; font-size: 12px; }
+  .barra { height: 6px; background: var(--borde); border-radius: 3px; min-width: 70px; }
+  .barra i { display: block; height: 100%; border-radius: 3px; background: var(--azul); }
+  .previa { margin-top: 12px; }
+  .grid2 { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+  .filtros { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; }
+  .filtros > div { min-width: 150px; flex: 1; }
+  a.boton { font-weight: 600; font-size: 13px; color: var(--azul); text-decoration: none; border: 1px solid var(--borde); border-radius: 8px; padding: 6px 10px; }
+  @media (prefers-color-scheme: dark) { a.boton { color: #8fb0ff; } }
+  .tasas-ancho { max-width: 760px; width: 100%; margin: 0 auto; display: grid; gap: 14px; }
 </style>
 </head>
 <body>
 <header>
   <h1>🇧🇷 Flujo Cuba Remesas 🇨🇺</h1>
-  <p>Panel de tasas del día</p>
+  <p>Panel del negocio: tasas, envíos, fondo USDT, ganancias y pérdidas · <span id="modoDb"></span></p>
 </header>
-<main>
+<nav id="pestanas">
+  <button data-ir="inicio">📊 Inicio</button>
+  <button data-ir="tasas">💱 Tasas</button>
+  <button data-ir="envios">📦 Envíos</button>
+  <button data-ir="lotes">🪙 Lotes USDT</button>
+  <button data-ir="clientes">👥 Clientes</button>
+  <button data-ir="gastos">🧾 Gastos</button>
+  <button data-ir="reportes">📈 Reportes</button>
+</nav>
+<main class="ancho">
+  <!-- ================= INICIO ================= -->
+  <div data-tab="inicio" class="grid2" style="grid-template-columns:1fr">
+    <section>
+      <h2>Hoy y este mes</h2>
+      <div class="res" id="iKpi" style="margin-top:0"></div>
+    </section>
+    <div class="grid2">
+      <section>
+        <h2>Fondo USDT y tasa</h2>
+        <div class="res" id="iFondo" style="margin-top:0"></div>
+      </section>
+      <section>
+        <h2>Alertas</h2>
+        <ul class="alertas" id="iAlertas"></ul>
+      </section>
+    </div>
+    <section>
+      <h2>Ganancia por día (últimos 14 días)</h2>
+      <svg id="iGrafico" viewBox="0 0 700 200" role="img" aria-label="Ganancia por día" style="width:100%;height:auto;display:block"></svg>
+    </section>
+    <section>
+      <h2>Últimos envíos</h2>
+      <div class="tabla"><table id="iUltimos"></table></div>
+      <div class="acciones"><button class="sec" data-ir="envios">Registrar un envío</button></div>
+    </section>
+    <section>
+      <h2>💾 Base de datos</h2>
+      <div id="dbEstado" class="estado">Consultando…</div>
+      <details id="dbDet" style="margin-top:12px">
+        <summary>Conexión con Supabase</summary>
+        <div class="fila" style="margin-top:12px">
+          <div><label for="dbUrl">URL del proyecto</label><input id="dbUrl" type="url" placeholder="https://xxxx.supabase.co"></div>
+          <div><label for="dbKey">Clave secreta <span id="dbKeyNota"></span></label><input id="dbKey" type="password" autocomplete="off"></div>
+        </div>
+        <div class="acciones">
+          <button class="sec" id="btnDb">Probar y conectar</button>
+          <button class="sec" id="btnDbSubir" hidden>Subir datos del archivo local</button>
+          <button class="sec" id="btnDbDesc" hidden>Desconectar</button>
+          <span id="msgDb"></span>
+        </div>
+        <p class="nota">Usa la clave <b>secreta</b>: Supabase → Project Settings → API Keys → Secret keys (empieza por <code>sb_secret_</code>; o la «service_role» si tu proyecto usa las claves antiguas). Se guarda en tu PC, fuera de Drive, y solo la usa el servidor del panel. La clave pública no sirve: las tablas están cerradas para ella.</p>
+      </details>
+    </section>
+  </div>
+
+  <!-- ================= TASAS (panel original) ================= -->
+  <div data-tab="tasas" class="tasas-ancho">
   <section>
     <h2>1 · WhatsApp</h2>
     <div id="wa" class="estado">Conectando…</div>
@@ -114,6 +203,11 @@
       <div class="kpi"><b id="kPeq">–</b><span id="kPeqTxt">CUP por 1 BRL en envíos pequeños</span></div>
       <div class="kpi"><b id="kEq">–</b><span>Tasa de equilibrio (no dar más)</span></div>
     </div>
+    <div class="res" id="resLote" hidden>
+      <div class="kpi"><b id="kLoteEq">–</b><span id="kLoteEqTxt">Equilibrio con tu lote activo</span></div>
+      <div class="kpi"><b id="kLoteSug">–</b><span>Tasa sugerida con tu lote</span></div>
+    </div>
+    <div id="avisoLote" class="estado" style="margin-top:10px" hidden></div>
   </section>
 
   <section>
@@ -142,10 +236,162 @@
       <h2 style="margin-top:16px">Tramos por monto</h2>
       <div class="fila" id="tarifa"></div>
       <div style="margin-top:12px"><label for="enlace">Enlace del grupo (va al pie del mensaje)</label><input id="enlace" type="url"></div>
+      <div class="fila" style="margin-top:12px"><div><label for="alertaUsdt">Alerta: USDT mínimo en el fondo</label><input id="alertaUsdt" type="number" step="1" min="0"></div></div>
       <div class="acciones"><button id="btnGuardar">Guardar todo</button><span id="msgAjustes"></span></div>
       <p class="nota">Los porcentajes se escriben normales: 3 = 3 %. Al guardar, el mensaje se recalcula.</p>
     </details>
   </section>
+
+  <section>
+    <h2>4 · Tasas publicadas</h2>
+    <form id="fTasa" class="fila">
+      <input type="hidden" name="id">
+      <div><label>Fecha</label><input name="fecha" type="date" required></div>
+      <div><label>Turno</label><select name="turno"><option>Mañana</option><option>Tarde</option><option>Noche</option></select></div>
+      <div><label>CUP por 1 BRL (publicada)</label><input name="tasaCup" type="number" step="0.5" min="0" required></div>
+      <div><label>Tasa envíos pequeños (opcional)</label><input name="tasaPequena" type="number" step="0.5" min="0"></div>
+      <div><label>USD/BRL (opcional)</label><input name="usdBrl" type="number" step="0.0001" min="0"></div>
+      <div><label>CUP por USD (opcional)</label><input name="cupUsd" type="number" step="0.5" min="0"></div>
+      <div style="grid-column:1/-1"><label>Notas</label><input name="notas"></div>
+    </form>
+    <div class="acciones">
+      <button id="btnTasaGuardar">Registrar tasa</button>
+      <button class="sec" id="btnTasaCalc">Usar la tasa calculada arriba</button>
+      <button class="sec" id="btnTasaCancelar" hidden>Cancelar edición</button>
+      <span id="msgTasa"></span>
+      <a class="boton" href="/api/erp/exportar?c=tasas" style="margin-left:auto">⬇ CSV</a>
+    </div>
+    <p class="nota">Al enviar por WhatsApp la tasa se registra sola. Si la decides a mano, regístrala aquí: los envíos nuevos la toman por defecto.</p>
+    <div class="tabla"><table id="tTasas"></table></div>
+  </section>
+  </div>
+
+  <!-- ================= ENVÍOS ================= -->
+  <div data-tab="envios" class="grid2" style="grid-template-columns:1fr">
+    <section>
+      <h2 id="hEnvio">Nuevo envío</h2>
+      <form id="fEnvio" class="fila">
+        <input type="hidden" name="id">
+        <div><label>Fecha</label><input name="fecha" type="date" required></div>
+        <div><label>Cliente</label><input name="cliente" list="listaClientes" required autocomplete="off"></div>
+        <div><label>Monto cobrado (BRL)</label><input name="montoBrl" type="number" step="0.01" min="0" inputmode="decimal" required></div>
+        <div><label>Tasa aplicada (CUP por 1 BRL)</label><input name="tasa" type="number" step="0.5" min="0" inputmode="decimal" required></div>
+        <div><label>CUP a entregar (vacío = monto × tasa)</label><input name="cupEntregados" type="number" step="0.5" min="0" inputmode="decimal"></div>
+        <div><label>Lote USDT</label><select name="lote"></select></div>
+        <div><label>Estado</label><select name="estado"><option>Pendiente</option><option>Entregado</option><option>Cancelado</option></select></div>
+        <div><label>Tarjeta del destinatario</label><input name="tarjeta" autocomplete="off"></div>
+        <div><label>Teléfono del destinatario</label><input name="telefono" autocomplete="off"></div>
+        <div style="grid-column:1/-1"><label>Notas</label><input name="notas"></div>
+      </form>
+      <datalist id="listaClientes"></datalist>
+      <div class="res previa" id="ePrevia" hidden></div>
+      <div class="acciones">
+        <button id="btnEnvioGuardar">Guardar envío</button>
+        <button class="sec" id="btnEnvioCancelar" hidden>Cancelar edición</button>
+        <span id="msgEnvio"></span>
+      </div>
+    </section>
+    <section>
+      <h2>Envíos</h2>
+      <div class="filtros">
+        <div><label>Buscar (cliente, tarjeta, teléfono)</label><input id="eBuscar" type="search"></div>
+        <div><label>Mes</label><select id="eMes"></select></div>
+        <div><label>Estado</label><select id="eEstado"><option value="">Todos</option><option>Pendiente</option><option>Entregado</option><option>Cancelado</option></select></div>
+        <a class="boton" href="/api/erp/exportar?c=envios">⬇ CSV para Excel</a>
+      </div>
+      <div class="tabla"><table id="tEnvios"></table></div>
+      <p class="nota">📋 copia los datos de entrega para mandárselos al socio por WhatsApp. Lote «auto» = se asignó solo al lote más antiguo con saldo (FIFO).</p>
+    </section>
+  </div>
+
+  <!-- ================= LOTES ================= -->
+  <div data-tab="lotes" class="grid2" style="grid-template-columns:1fr">
+    <section>
+      <h2 id="hLote">Nueva compra de USDT</h2>
+      <form id="fLote" class="fila">
+        <input type="hidden" name="id">
+        <div><label>Fecha</label><input name="fecha" type="date" required></div>
+        <div><label>Código del lote</label><input name="codigo" required></div>
+        <div><label>USDT comprados</label><input name="usdt" type="number" step="0.01" min="0" required></div>
+        <div><label>BRL pagados</label><input name="brl" type="number" step="0.01" min="0" required></div>
+        <div><label>CUP por USDT (lo que te da el socio)</label><input name="cupPorUsdt" type="number" step="0.5" min="0" required></div>
+        <div><label>USDT ya usados antes (normalmente 0)</label><input name="usadosPrevios" type="number" step="0.01" min="0"></div>
+        <div style="grid-column:1/-1"><label>Notas</label><input name="notas"></div>
+      </form>
+      <div class="res previa" id="lPrevia" hidden></div>
+      <div class="acciones">
+        <button id="btnLoteGuardar">Guardar lote</button>
+        <button class="sec" id="btnLoteCancelar" hidden>Cancelar edición</button>
+        <span id="msgLote"></span>
+      </div>
+    </section>
+    <section>
+      <h2>Lotes</h2>
+      <div class="res" id="lKpi" style="margin-top:0"></div>
+      <div class="tabla"><table id="tLotes"></table></div>
+      <div class="acciones"><a class="boton" href="/api/erp/exportar?c=lotes">⬇ CSV para Excel</a></div>
+      <p class="nota">Equilibrio = lo máximo que puedes dar por 1 BRL con ese lote sin perder. ACTIVO = el lote que se gasta ahora (el más antiguo con saldo).</p>
+    </section>
+  </div>
+
+  <!-- ================= CLIENTES ================= -->
+  <div data-tab="clientes">
+    <section>
+      <h2>Clientes</h2>
+      <div class="filtros">
+        <div><label>Buscar</label><input id="cBuscar" type="search"></div>
+        <a class="boton" href="/api/erp/exportar?c=clientes">⬇ CSV para Excel</a>
+      </div>
+      <div class="tabla"><table id="tClientes"></table></div>
+      <p class="nota">Se arma solo con los envíos. Pulsa un nombre para ver sus envíos.</p>
+    </section>
+  </div>
+
+  <!-- ================= GASTOS ================= -->
+  <div data-tab="gastos" class="grid2" style="grid-template-columns:1fr">
+    <section>
+      <h2 id="hGasto">Nuevo gasto</h2>
+      <form id="fGasto" class="fila">
+        <input type="hidden" name="id">
+        <div><label>Fecha</label><input name="fecha" type="date" required></div>
+        <div><label>Concepto</label><input name="concepto" required></div>
+        <div><label>Categoría</label><input name="categoria" list="listaCategorias"></div>
+        <div><label>Monto (BRL)</label><input name="montoBrl" type="number" step="0.01" min="0" required></div>
+      </form>
+      <datalist id="listaCategorias"><option>WhatsApp / API</option><option>Herramientas y software</option><option>Ayudante</option><option>Publicidad</option><option>Transporte / entrega</option><option>Comisiones bancarias</option><option>Otros</option></datalist>
+      <div class="acciones">
+        <button id="btnGastoGuardar">Guardar gasto</button>
+        <button class="sec" id="btnGastoCancelar" hidden>Cancelar edición</button>
+        <span id="msgGasto"></span>
+      </div>
+    </section>
+    <section>
+      <h2>Gastos</h2>
+      <div class="tabla"><table id="tGastos"></table></div>
+      <div class="acciones"><a class="boton" href="/api/erp/exportar?c=gastos">⬇ CSV para Excel</a></div>
+      <p class="nota">Los gastos se restan de la ganancia en «Reportes» (utilidad neta).</p>
+    </section>
+  </div>
+
+  <!-- ================= REPORTES ================= -->
+  <div data-tab="reportes" class="grid2" style="grid-template-columns:1fr">
+    <section>
+      <h2>Ganancias y pérdidas por mes</h2>
+      <svg id="rGrafico" viewBox="0 0 700 220" role="img" aria-label="Utilidad por mes" style="width:100%;height:auto;display:block"></svg>
+      <div class="tabla"><table id="tMeses"></table></div>
+      <div class="acciones"><a class="boton" href="/api/erp/exportar?c=meses">⬇ CSV para Excel</a></div>
+    </section>
+    <section>
+      <h2>Detalle por día</h2>
+      <div class="filtros"><div><label>Mes</label><select id="rMes"></select></div></div>
+      <div class="tabla"><table id="tDias"></table></div>
+    </section>
+    <section>
+      <h2>Socio en Cuba (CUP)</h2>
+      <div class="res" id="rSocio" style="margin-top:0"></div>
+      <p class="nota">Recibido = CUP que te acreditó por los USDT de tus lotes. Libre = lo que todavía puede entregar en nuevos envíos.</p>
+    </section>
+  </div>
 </main>
 
 <script>
@@ -211,6 +457,7 @@ async function refrescarEstado(inicial) {
     if (w.qr) $('qr').src = w.qr;
     if (inicial) {
       dibujarSupuestos(config.supuestos); dibujarTarifa(config.tarifa); $('enlace').value = config.enlace; window.destinoGuardado = config.destinoId;
+      configActual = config; $('alertaUsdt').value = config.alertaUsdt;
       const c = w.conf || {};
       $('evoUrl').value = c.url || ''; if (c.instance) $('evoInst').value = c.instance;
       $('evoKeyNota').textContent = c.tieneKey ? '(ya guardada; déjala vacía para conservarla)' : '';
@@ -246,6 +493,25 @@ async function calcular() {
     $('kEq').textContent = fmt(r.equilibrio, 2) + ' CUP';
     $('res').hidden = false;
     $('mensaje').value = r.mensaje;
+    ultimoCalculo = { tasaCup: r.tasaCup, tasaPequena: r.tasaPequena, usdBrl, cupUsd, turno: $('turno').value };
+    // Comparación con lo que de verdad costó el USDT del lote activo.
+    $('resLote').hidden = !r.lote;
+    const av = $('avisoLote');
+    if (r.lote) {
+      $('kLoteEq').textContent = fmt(r.lote.equilibrio, 2) + ' CUP';
+      $('kLoteEqTxt').textContent = `Equilibrio con tu lote ${r.lote.codigo} (costo R$ ${fmt(r.lote.costo, 4)})`;
+      $('kLoteSug').textContent = fmt(r.lote.sugerida, 1) + ' CUP';
+      const pierde = r.tasaCup > r.lote.equilibrio;
+      av.hidden = false;
+      av.className = 'estado ' + (pierde ? 'error' : 'listo');
+      av.textContent = pierde
+        ? `⚠️ Con ${fmt(r.tasaCup, 1)} CUP pierdes dinero con el lote ${r.lote.codigo}: no des más de ${fmt(r.lote.equilibrio, 2)}.`
+        : `✅ Con ${fmt(r.tasaCup, 1)} CUP ganas ${fmt((1 - r.tasaCup / r.lote.equilibrio) * 100, 1)} % sobre el costo real del lote ${r.lote.codigo}.`;
+    } else if (r.avisoDb) {
+      av.hidden = false; av.className = 'estado error'; av.textContent = `No se pudo leer tus lotes: ${r.avisoDb}`;
+    } else {
+      av.hidden = false; av.className = 'estado'; av.textContent = 'Registra tus lotes de USDT (pestaña «Lotes USDT») para comparar con tu costo real.';
+    }
     aviso('', true);
   } catch (e) { aviso(e.message, false); }
   actualizarBoton();
@@ -293,8 +559,10 @@ $('btnGuardar').onclick = async () => {
   const t = {};
   document.querySelectorAll('#tarifa input').forEach((i) => { t[i.dataset.t] = parseFloat(i.value); });
   try {
-    const nuevo = await api('/api/config', { supuestos: s, tarifa: t, enlace: $('enlace').value });
+    const nuevo = await api('/api/config', { supuestos: s, tarifa: t, enlace: $('enlace').value, alertaUsdt: parseFloat($('alertaUsdt').value) });
     supuestosGuardados = nuevo.supuestos;
+    configActual = { ...configActual, ...nuevo };
+    cargarErp();
     avisoAjustes('✅ Guardado ' + new Date().toLocaleTimeString(), true);
     calcular();
   } catch (e) { avisoErrorAjustes(e); }
@@ -308,6 +576,12 @@ $('btnEnviar').onclick = async () => {
   try {
     await api('/api/enviar', { destinoId: $('destino').value, mensaje: $('mensaje').value });
     aviso('✅ Enviado ' + new Date().toLocaleTimeString(), true);
+    if (ultimoCalculo) {
+      try {
+        await guardarEn('tasas', { ...ultimoCalculo, fecha: hoyIso(), notas: 'Enviada por WhatsApp' });
+        aviso('✅ Enviado y registrado en «Tasas publicadas» ' + new Date().toLocaleTimeString(), true);
+      } catch {}
+    }
   } catch (e) { aviso(e.message, false); }
   actualizarBoton();
 };
@@ -367,6 +641,405 @@ async function cargarMercado() {
 
 document.querySelectorAll('[data-rango]').forEach((b) => { b.onclick = () => { rango = b.dataset.rango; dibujarGrafico(); }; });
 $('btnMercado').onclick = cargarMercado;
+
+// ===================== ERP =====================
+let configActual = { tarifa: { umbralBrl: 100 } }, ultimoCalculo = null, libro = null;
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const nf = (d) => new Intl.NumberFormat('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d });
+const vacioN = (n) => n === null || n === undefined || Number.isNaN(n);
+const num = (n, d = 2) => (vacioN(n) ? '–' : nf(d).format(n));
+const brl = (n) => (vacioN(n) ? '–' : 'R$ ' + nf(2).format(n));
+const pct = (n) => (vacioN(n) ? '–' : nf(1).format(n * 100) + ' %');
+const signo = (n) => (vacioN(n) || n === 0 ? '' : n < 0 ? 'neg' : 'pos');
+const color = (n) => (vacioN(n) || n === 0 ? '' : n < 0 ? 'rojo' : 'verde');
+const fechaCorta = (f) => (f ? `${f.slice(8, 10)}/${f.slice(5, 7)}/${f.slice(0, 4)}` : '');
+const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+const nombreMes = (p) => `${MESES[+p.slice(5, 7) - 1]} ${p.slice(0, 4)}`;
+function hoyIso() { const d = new Date(); return new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); }
+const kpi = (valor, etiqueta, clase = '', sub = '') => `<div class="kpi ${clase}"><b>${valor}</b><span>${etiqueta}</span>${sub ? `<small>${sub}</small>` : ''}</div>`;
+const tagEstado = (e) => `<span class="tag ${{ Entregado: 'ok', Pendiente: 'av', Cancelado: '', ACTIVO: 'ok', Agotado: '', 'En espera': 'av' }[e] ?? ''}">${esc(e)}</span>`;
+const crudo = (col, id) => libro.datos[col].find((x) => x.id === id);
+
+async function cargarErp() {
+  try { libro = await api('/api/erp'); pintarTodo(); pintarDb(libro.db); }
+  catch (e) {
+    $('iAlertas').innerHTML = `<li class="error">${esc(e.message)}</li>`;
+    try { pintarDb(await api('/api/db'), e.message); } catch {}
+  }
+}
+async function guardarEn(coleccion, item) {
+  const r = await api('/api/erp/guardar', { coleccion, item });
+  libro = r; pintarTodo(); pintarDb(r.db);
+  return r.item;
+}
+
+// ---- base de datos ----
+function pintarDb(db, error) {
+  const caja = $('dbEstado');
+  if (db.modo === 'supabase') {
+    caja.className = 'estado ' + (error ? 'error' : 'listo');
+    caja.textContent = (error ? `⚠️ Supabase no responde: ${error}` : '✅ Conectado a Supabase') + ` (${db.url})` + (db.desdeEntorno ? ' · definido en el servidor' : '');
+  } else {
+    caja.className = 'estado';
+    caja.textContent = '📁 Guardando en el archivo local erp.json. Conecta Supabase para tener los datos en la nube.';
+  }
+  if (db.url) $('dbUrl').value = db.url;
+  $('dbKeyNota').textContent = db.tieneKey ? '(ya guardada; déjala vacía para conservarla)' : '';
+  $('btnDbDesc').hidden = $('btnDbSubir').hidden = db.modo !== 'supabase' || db.desdeEntorno;
+  $('btnDb').disabled = !!db.desdeEntorno;
+  $('modoDb').textContent = db.modo === 'supabase' ? '💾 Supabase' : '📁 Archivo local';
+  if (db.modo !== 'supabase' && !$('dbDet').dataset.visto) { $('dbDet').open = true; $('dbDet').dataset.visto = '1'; }
+}
+$('btnDb').onclick = async () => {
+  msgEn('msgDb', 'Probando conexión…', true);
+  try {
+    const r = await api('/api/db', { url: $('dbUrl').value, key: $('dbKey').value });
+    $('dbKey').value = '';
+    msgEn('msgDb', `✅ Conectado: ${r.filas.lotes} lotes, ${r.filas.envios} envíos, ${r.filas.gastos} gastos, ${r.filas.tasas} tasas`, true);
+    cargarErp();
+  } catch (e) { msgEn('msgDb', e.message, false); }
+};
+$('btnDbDesc').onclick = async () => {
+  if (!confirm('¿Desconectar Supabase? El panel volverá a usar el archivo local erp.json (los datos de Supabase no se borran).')) return;
+  try { await api('/api/db/desconectar', {}); msgEn('msgDb', 'Desconectado', true); cargarErp(); } catch (e) { msgEn('msgDb', e.message, false); }
+};
+$('btnDbSubir').onclick = async () => {
+  if (!confirm('¿Copiar a Supabase todo lo del archivo local erp.json? No borra nada; si un registro ya existe, lo actualiza con la versión local.')) return;
+  try {
+    const r = await api('/api/db/subir-local', {});
+    msgEn('msgDb', `✅ Subidos: ${r.subidos.lotes} lotes, ${r.subidos.envios} envíos, ${r.subidos.gastos} gastos, ${r.subidos.tasas} tasas`, true);
+    cargarErp();
+  } catch (e) { msgEn('msgDb', e.message, false); }
+};
+async function borrarDe(coleccion, id, texto) {
+  if (!confirm(texto)) return;
+  try { libro = await api('/api/erp/borrar', { coleccion, id }); pintarTodo(); } catch (e) { alert(e.message); }
+}
+
+// ---- pestañas ----
+function irA(tab) {
+  if (!document.querySelector(`[data-tab="${tab}"]`)) tab = 'inicio';
+  document.querySelectorAll('[data-tab]').forEach((d) => { d.hidden = d.dataset.tab !== tab; });
+  document.querySelectorAll('#pestanas button').forEach((b) => b.classList.toggle('activa', b.dataset.ir === tab));
+  if (location.hash !== '#' + tab) history.replaceState(null, '', '#' + tab);
+  window.scrollTo(0, 0);
+}
+document.querySelectorAll('[data-ir]').forEach((b) => b.addEventListener('click', () => irA(b.dataset.ir)));
+window.addEventListener('hashchange', () => irA(location.hash.slice(1)));
+
+// ---- formularios (crear / editar) ----
+function leerForm(f) { const o = {}; for (const el of f.elements) if (el.name) o[el.name] = el.value; return o; }
+function llenarForm(f, item) { for (const el of f.elements) if (el.name) el.value = item[el.name] ?? ''; }
+function msgEn(id, texto, ok) { $(id).textContent = texto; $(id).className = ok ? 'ok' : 'err'; }
+
+function crud({ coleccion, form, guardar, cancelar, msg, titulo, nuevo, editando, alLimpiar }) {
+  const f = $(form), textoGuardar = $(guardar).textContent;
+  const limpiar = () => {
+    f.reset(); f.elements.id.value = '';
+    $(cancelar).hidden = true; $(guardar).textContent = textoGuardar;
+    if (titulo) $(titulo).textContent = nuevo;
+    if (alLimpiar) alLimpiar();
+  };
+  $(guardar).onclick = async () => {
+    if (!f.reportValidity()) return;
+    try { await guardarEn(coleccion, leerForm(f)); limpiar(); msgEn(msg, '✅ Guardado ' + new Date().toLocaleTimeString(), true); }
+    catch (e) { msgEn(msg, e.message, false); }
+  };
+  $(cancelar).onclick = () => { limpiar(); msgEn(msg, '', true); };
+  f.addEventListener('submit', (e) => { e.preventDefault(); $(guardar).click(); });
+  const editar = (item) => {
+    llenarForm(f, item);
+    $(cancelar).hidden = false; $(guardar).textContent = 'Guardar cambios';
+    if (titulo) $(titulo).textContent = editando;
+    msgEn(msg, '', true);
+    f.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+  return { limpiar, editar };
+}
+
+// Gráfico de barras simple (verde = ganancia, rojo = pérdida).
+function barras(svg, items, alto = 200) {
+  const W = 700, H = alto, m = { l: 62, r: 8, t: 12, b: 26 };
+  if (!items.length) { svg.innerHTML = `<text x="350" y="${H / 2}" text-anchor="middle" fill="currentColor" opacity=".6" font-size="13">Sin datos todavía</text>`; return; }
+  const vals = items.map((i) => i.valor);
+  const max = Math.max(0, ...vals), min = Math.min(0, ...vals), rango = max - min || 1;
+  const y = (v) => m.t + ((max - v) / rango) * (H - m.t - m.b);
+  const bw = (W - m.l - m.r) / items.length;
+  const cada = Math.ceil(items.length / 14);
+  let s = [max, 0, min].filter((v, i, a) => a.indexOf(v) === i).map((v) =>
+    `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}" stroke="currentColor" opacity="${v === 0 ? '.35' : '.12'}"/>` +
+    `<text x="${m.l - 6}" y="${(y(v) + 4).toFixed(1)}" text-anchor="end" font-size="11" fill="currentColor" opacity=".7">${num(v, 0)}</text>`).join('');
+  items.forEach((it, i) => {
+    const ancho = Math.min(bw * 0.7, 56), x = m.l + i * bw + (bw - ancho) / 2;
+    const top = Math.min(y(it.valor), y(0)), h = Math.max(Math.abs(y(it.valor) - y(0)), it.valor ? 1 : 0);
+    s += `<rect x="${x.toFixed(1)}" y="${top.toFixed(1)}" width="${ancho.toFixed(1)}" height="${h.toFixed(1)}" rx="2" fill="${it.valor < 0 ? '#E8283A' : '#1a8a4a'}"><title>${esc(it.etiqueta)}: ${brl(it.valor)}</title></rect>`;
+    if (it.valor) s += `<text x="${(x + ancho / 2).toFixed(1)}" y="${(top - 4).toFixed(1)}" text-anchor="middle" font-size="10" fill="currentColor" opacity=".8">${num(it.valor, 0)}</text>`;
+    if (i % cada === 0) s += `<text x="${(x + ancho / 2).toFixed(1)}" y="${H - 8}" text-anchor="middle" font-size="11" fill="currentColor" opacity=".7">${esc(it.corta)}</text>`;
+  });
+  svg.innerHTML = s;
+  svg.style.color = getComputedStyle(document.body).color;
+}
+
+const tabla = (id, cabecera, filas, pie = '') => {
+  $(id).innerHTML = `<thead><tr>${cabecera.map(([t, n]) => `<th class="${n ? 'n' : ''}">${t}</th>`).join('')}</tr></thead>` +
+    `<tbody>${filas.join('') || `<tr><td colspan="${cabecera.length}" class="nota">Nada todavía</td></tr>`}</tbody>${pie ? `<tfoot>${pie}</tfoot>` : ''}`;
+};
+const acc = (col, id, ...quien) => quien.map((q) => ({
+  entregar: `<button class="mini" data-acc="entregar" data-col="${col}" data-id="${id}" title="Marcar entregado">✓ Entregado</button>`,
+  copiar: `<button class="mini sec" data-acc="copiar" data-col="${col}" data-id="${id}" title="Copiar datos de entrega">📋</button>`,
+  editar: `<button class="mini sec" data-acc="editar" data-col="${col}" data-id="${id}" title="Editar">✏️</button>`,
+  borrar: `<button class="mini sec" data-acc="borrar" data-col="${col}" data-id="${id}" title="Borrar">🗑</button>`,
+}[q])).join(' ');
+
+// ---- INICIO ----
+function pintarInicio() {
+  const c = libro.calculo, r = c.resumen, hoy = hoyIso(), mes = hoy.slice(0, 7);
+  const dHoy = c.porDia.find((d) => d.periodo === hoy) || { ganancia: 0, envios: 0 };
+  const dMes = c.porMes.find((m) => m.periodo === mes) || { ganancia: 0, gastos: 0, neto: 0, envios: 0, margen: null };
+  $('iKpi').innerHTML = [
+    kpi(brl(dHoy.ganancia), 'Ganancia de hoy', color(dHoy.ganancia), `${dHoy.envios} envío(s)`),
+    kpi(brl(dMes.ganancia), `Ganancia de ${nombreMes(mes)}`, color(dMes.ganancia), `${dMes.envios} envíos · margen ${pct(dMes.margen)}`),
+    kpi(brl(dMes.neto), 'Utilidad neta del mes', color(dMes.neto), `Gastos del mes ${brl(dMes.gastos)}`),
+    kpi(brl(r.ganancia), 'Ganancia total', color(r.ganancia), `${r.envios} envíos · margen ${pct(r.margen)}`),
+    kpi(brl(r.brl), 'BRL cobrados (total)', '', `${num(r.cup, 0)} CUP entregados`),
+  ].join('');
+  const la = r.loteActivo, ut = r.ultimaTasa;
+  $('iFondo').innerHTML = [
+    kpi(num(r.usdtDisponibles), 'USDT disponibles', r.usdtDisponibles < r.alertaUsdt ? 'rojo' : '', `Valen ${brl(r.valorSaldo)}`),
+    kpi(la ? esc(la.codigo) : '–', 'Lote activo', '', la ? `Costo R$ ${num(la.costo, 4)} · quedan ${num(la.disponibles)} USDT` : 'Sin fondo'),
+    kpi(la ? num(la.equilibrio) : '–', 'Equilibrio (no dar más)', '', 'CUP por 1 BRL'),
+    kpi(la ? num(la.sugerida, 1) : '–', 'Tasa sugerida', 'verde', 'CUP por 1 BRL'),
+    kpi(ut ? num(ut.tasaCup, 1) : '–', 'Última tasa publicada', r.margenTasa < 0 ? 'rojo' : '', ut ? `${fechaCorta(ut.fecha)} ${esc(ut.turno)} · margen ${pct(r.margenTasa)}` : 'Regístrala en Tasas'),
+    kpi(num(r.socio.saldo, 0), 'CUP libres con el socio', r.socio.saldo < 0 ? 'rojo' : '', `Pendiente de entregar: ${num(r.socio.pendiente, 0)}`),
+  ].join('');
+  $('iAlertas').innerHTML = c.alertas.length
+    ? c.alertas.map((a) => `<li class="${a.nivel}">${esc(a.texto)}</li>`).join('')
+    : '<li class="ok">✅ Todo en orden</li>';
+  const dias = [];
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date(hoy + 'T12:00:00'); d.setDate(d.getDate() - i);
+    const iso = d.toISOString().slice(0, 10), fila = c.porDia.find((x) => x.periodo === iso);
+    dias.push({ valor: fila ? fila.ganancia : 0, etiqueta: fechaCorta(iso), corta: iso.slice(8, 10) + '/' + iso.slice(5, 7) });
+  }
+  barras($('iGrafico'), dias);
+  tabla('iUltimos', [['Fecha'], ['Cliente'], ['Monto', 1], ['Tasa', 1], ['Ganancia', 1], ['Estado']],
+    c.envios.slice(0, 6).map((e) => `<tr class="${e.estado === 'Cancelado' ? 'cancelado' : ''}"><td>${fechaCorta(e.fecha)}</td><td>${esc(e.cliente)}</td><td class="n">${brl(e.montoBrl)}</td>` +
+      `<td class="n">${num(e.tasa, 1)}</td><td class="n ${signo(e.ganancia)}">${brl(e.ganancia)}</td><td>${tagEstado(e.estado)}</td></tr>`));
+}
+
+// ---- TASAS PUBLICADAS ----
+const formTasa = crud({ coleccion: 'tasas', form: 'fTasa', guardar: 'btnTasaGuardar', cancelar: 'btnTasaCancelar', msg: 'msgTasa',
+  alLimpiar: () => { $('fTasa').elements.fecha.value = hoyIso(); $('fTasa').elements.turno.value = $('turno').value; } });
+$('btnTasaCalc').onclick = () => {
+  if (!ultimoCalculo) return msgEn('msgTasa', 'Primero calcula la tasa en «2 · Datos del turno»', false);
+  llenarForm($('fTasa'), { ...ultimoCalculo, fecha: hoyIso(), notas: '' });
+  msgEn('msgTasa', 'Revisa y pulsa «Registrar tasa»', true);
+};
+function pintarTasas() {
+  tabla('tTasas', [['Fecha'], ['Turno'], ['Tasa', 1], ['Pequeña', 1], ['USD/BRL', 1], ['CUP/USD', 1], ['Notas'], ['']],
+    libro.calculo.tasas.map((t) => `<tr><td>${fechaCorta(t.fecha)}</td><td>${esc(t.turno)}</td><td class="n"><b>${num(t.tasaCup, 1)}</b></td>` +
+      `<td class="n">${num(t.tasaPequena, 1)}</td><td class="n">${num(t.usdBrl, 4)}</td><td class="n">${num(t.cupUsd, 0)}</td><td>${esc(t.notas)}</td>` +
+      `<td>${acc('tasas', t.id, 'editar', 'borrar')}</td></tr>`));
+}
+
+// ---- ENVÍOS ----
+let tasaManual = false, tSim;
+const fEnvio = $('fEnvio');
+const formEnvio = crud({ coleccion: 'envios', form: 'fEnvio', guardar: 'btnEnvioGuardar', cancelar: 'btnEnvioCancelar', msg: 'msgEnvio',
+  titulo: 'hEnvio', nuevo: 'Nuevo envío', editando: 'Editar envío',
+  alLimpiar: () => { fEnvio.elements.fecha.value = hoyIso(); fEnvio.elements.estado.value = 'Pendiente'; tasaManual = false; $('ePrevia').hidden = true; } });
+
+function tasaPorDefecto(monto) {
+  const ut = libro?.calculo.resumen.ultimaTasa;
+  if (!ut) return '';
+  return monto > 0 && monto < (configActual.tarifa?.umbralBrl ?? 100) && ut.tasaPequena ? ut.tasaPequena : ut.tasaCup;
+}
+fEnvio.elements.tasa.addEventListener('input', () => { tasaManual = true; });
+fEnvio.elements.cliente.addEventListener('change', () => {
+  const c = libro?.calculo.clientes.find((x) => x.nombre.toLowerCase() === fEnvio.elements.cliente.value.trim().toLowerCase());
+  if (!c) return;
+  if (!fEnvio.elements.tarjeta.value) fEnvio.elements.tarjeta.value = c.tarjeta;
+  if (!fEnvio.elements.telefono.value) fEnvio.elements.telefono.value = c.telefono;
+});
+fEnvio.addEventListener('input', (ev) => {
+  const el = fEnvio.elements;
+  if (ev.target.name === 'montoBrl' && !tasaManual) el.tasa.value = tasaPorDefecto(parseFloat(el.montoBrl.value));
+  clearTimeout(tSim); tSim = setTimeout(simularEnvio, 300);
+});
+async function simularEnvio() {
+  const item = leerForm(fEnvio);
+  if (!(parseFloat(item.montoBrl) > 0) || !(parseFloat(item.tasa) > 0) || !item.fecha) { $('ePrevia').hidden = true; return; }
+  try {
+    const e = await api('/api/erp/simular', { item: { ...item, cliente: item.cliente || 'cliente' } });
+    const lotes = e.partes.map((p) => `${p.lote} (${num(p.usdt)} USDT)`).join(' + ') || '–';
+    $('ePrevia').innerHTML = [
+      kpi(num(e.cup, 1), 'CUP a entregar'),
+      kpi(esc(lotes), 'Sale del lote'),
+      kpi(brl(e.costo), 'Costo real'),
+      kpi(brl(e.ganancia), 'Ganancia', color(e.ganancia), e.ganancia < 0 ? '⚠️ Este envío PIERDE dinero' : ''),
+      kpi(pct(e.margen), 'Margen', color(e.margen)),
+    ].join('') + (e.avisos.length ? `<div class="kpi" style="grid-column:1/-1"><span class="err">${e.avisos.map(esc).join(' · ')}</span></div>` : '');
+    $('ePrevia').hidden = false;
+  } catch { $('ePrevia').hidden = true; }
+}
+
+function filtroEnvios() {
+  const q = $('eBuscar').value.trim().toLowerCase(), mes = $('eMes').value, est = $('eEstado').value;
+  return libro.calculo.envios.filter((e) =>
+    (!q || [e.cliente, e.tarjeta, e.telefono, e.notas].some((v) => String(v || '').toLowerCase().includes(q))) &&
+    (!mes || e.fecha.startsWith(mes)) && (!est || e.estado === est));
+}
+function pintarEnvios() {
+  const lista = filtroEnvios();
+  const validos = lista.filter((e) => e.estado !== 'Cancelado' && e.ganancia !== null);
+  const s = (f) => validos.reduce((a, e) => a + f(e), 0);
+  const pie = `<tr><td colspan="2">${validos.length} envíos</td><td class="n">${brl(s((e) => e.montoBrl))}</td><td></td><td class="n">${num(s((e) => e.cup), 0)}</td>` +
+    `<td></td><td class="n">${num(s((e) => e.usdt))}</td><td class="n">${brl(s((e) => e.costo))}</td><td class="n ${signo(s((e) => e.ganancia))}">${brl(s((e) => e.ganancia))}</td>` +
+    `<td class="n">${pct(s((e) => e.montoBrl) ? s((e) => e.ganancia) / s((e) => e.montoBrl) : null)}</td><td colspan="2"></td></tr>`;
+  tabla('tEnvios', [['Fecha'], ['Cliente'], ['Monto', 1], ['Tasa', 1], ['CUP', 1], ['Lote'], ['USDT', 1], ['Costo', 1], ['Ganancia', 1], ['Margen', 1], ['Estado'], ['']],
+    lista.map((e) => `<tr class="${e.estado === 'Cancelado' ? 'cancelado' : ''}"><td>${fechaCorta(e.fecha)}</td><td>${esc(e.cliente)}</td>` +
+      `<td class="n">${brl(e.montoBrl)}</td><td class="n">${num(e.tasa, 1)}</td><td class="n">${num(e.cup, 0)}</td>` +
+      `<td>${esc(e.partes.map((p) => p.lote).join('+'))}${e.lote ? '' : e.partes.length ? ' <span class="tag">auto</span>' : ''}${e.avisos.length ? ` <span class="tag err" title="${esc(e.avisos.join(' · '))}">⚠</span>` : ''}</td>` +
+      `<td class="n">${num(e.usdt)}</td><td class="n">${brl(e.costo)}</td><td class="n ${signo(e.ganancia)}"><b>${brl(e.ganancia)}</b></td><td class="n ${signo(e.margen)}">${pct(e.margen)}</td>` +
+      `<td>${tagEstado(e.estado)}</td><td>${acc('envios', e.id, ...(e.estado === 'Pendiente' ? ['entregar'] : []), 'copiar', 'editar', 'borrar')}</td></tr>`), pie);
+}
+['eBuscar', 'eMes', 'eEstado'].forEach((id) => $(id).addEventListener('input', pintarEnvios));
+
+// ---- LOTES ----
+const fLote = $('fLote');
+const siguienteCodigo = () => 'L' + (Math.max(0, ...(libro?.datos.lotes || []).map((l) => parseInt(l.codigo.replace(/\D/g, ''), 10) || 0)) + 1);
+const formLote = crud({ coleccion: 'lotes', form: 'fLote', guardar: 'btnLoteGuardar', cancelar: 'btnLoteCancelar', msg: 'msgLote',
+  titulo: 'hLote', nuevo: 'Nueva compra de USDT', editando: 'Editar lote',
+  alLimpiar: () => { fLote.elements.fecha.value = hoyIso(); fLote.elements.codigo.value = siguienteCodigo(); fLote.elements.usadosPrevios.value = 0;
+    const ul = libro?.datos.lotes.at(-1); if (ul) fLote.elements.cupPorUsdt.value = ul.cupPorUsdt; $('lPrevia').hidden = true; } });
+fLote.addEventListener('input', () => {
+  const el = fLote.elements, usdt = parseFloat(el.usdt.value), brlP = parseFloat(el.brl.value), cup = parseFloat(el.cupPorUsdt.value);
+  if (!(usdt > 0 && brlP > 0 && cup > 0)) { $('lPrevia').hidden = true; return; }
+  const s = supuestosGuardados, costo = brlP / usdt, eq = (cup * (1 - s.pixFee) * (1 - s.partnerFeeCup)) / costo;
+  $('lPrevia').innerHTML = [
+    kpi('R$ ' + num(costo, 4), 'Costo por USDT'),
+    kpi(num(usdt * cup * (1 - s.partnerFeeCup), 0), 'CUP que te da el socio'),
+    kpi(num(eq), 'Equilibrio (CUP/BRL)', 'rojo'),
+    kpi(num(Math.floor(eq * (1 - s.margin - s.cushion) * 2) / 2, 1), 'Tasa sugerida', 'verde'),
+  ].join('');
+  $('lPrevia').hidden = false;
+});
+function pintarLotes() {
+  const c = libro.calculo, r = c.resumen;
+  $('lKpi').innerHTML = [
+    kpi(num(r.usdtComprados), 'USDT comprados'),
+    kpi(brl(r.brlInvertidos), 'BRL invertidos'),
+    kpi(r.usdtComprados ? 'R$ ' + num(r.brlInvertidos / r.usdtComprados, 4) : '–', 'Costo promedio por USDT'),
+    kpi(num(r.usdtDisponibles), 'USDT disponibles', r.usdtDisponibles < r.alertaUsdt ? 'rojo' : 'verde', `Valen ${brl(r.valorSaldo)}`),
+  ].join('');
+  tabla('tLotes', [['Fecha'], ['Lote'], ['USDT', 1], ['BRL pagados', 1], ['Costo/USDT', 1], ['CUP/USDT', 1], ['Equilibrio', 1], ['Sugerida', 1],
+    ['Usado'], ['Disponibles', 1], ['Valor saldo', 1], ['Envíos', 1], ['Ganancia', 1], ['Estado'], ['']],
+    [...c.lotes].reverse().map((l) => {
+      const usado = Math.min(1, Math.max(0, 1 - l.disponibles / l.usdt));
+      return `<tr><td>${fechaCorta(l.fecha)}</td><td><b>${esc(l.codigo)}</b></td><td class="n">${num(l.usdt)}</td><td class="n">${brl(l.brl)}</td>` +
+        `<td class="n">R$ ${num(l.costo, 4)}</td><td class="n">${num(l.cupPorUsdt, 0)}</td><td class="n neg">${num(l.equilibrio)}</td><td class="n pos">${num(l.sugerida, 1)}</td>` +
+        `<td title="${pct(usado)}"><div class="barra"><i style="width:${(usado * 100).toFixed(1)}%"></i></div></td><td class="n"><b>${num(l.disponibles)}</b></td>` +
+        `<td class="n">${brl(l.valorSaldo)}</td><td class="n">${l.envios}</td><td class="n ${signo(l.ganancia)}">${brl(l.ganancia)}</td><td>${tagEstado(l.estado)}</td>` +
+        `<td>${acc('lotes', l.id, 'editar', 'borrar')}</td></tr>`;
+    }));
+}
+
+// ---- CLIENTES ----
+function pintarClientes() {
+  const q = $('cBuscar').value.trim().toLowerCase();
+  const lista = libro.calculo.clientes.filter((c) => !q || [c.nombre, c.tarjeta, c.telefono].some((v) => String(v).toLowerCase().includes(q)));
+  tabla('tClientes', [['Cliente'], ['Envíos', 1], ['BRL enviados', 1], ['CUP', 1], ['Ganancia', 1], ['Primer envío'], ['Último envío'], ['Tarjeta'], ['Teléfono']],
+    lista.map((c) => `<tr><td><button class="mini sec" data-cliente="${esc(c.nombre)}">${esc(c.nombre)}</button></td><td class="n">${c.envios}</td>` +
+      `<td class="n">${brl(c.brl)}</td><td class="n">${num(c.cup, 0)}</td><td class="n ${signo(c.ganancia)}">${brl(c.ganancia)}</td>` +
+      `<td>${fechaCorta(c.primera)}</td><td>${fechaCorta(c.ultima)}</td><td>${esc(c.tarjeta)}</td><td>${esc(c.telefono)}</td></tr>`));
+  $('listaClientes').innerHTML = libro.calculo.clientes.map((c) => `<option value="${esc(c.nombre)}">`).join('');
+}
+$('cBuscar').addEventListener('input', pintarClientes);
+$('tClientes').addEventListener('click', (ev) => {
+  const b = ev.target.closest('[data-cliente]');
+  if (!b) return;
+  $('eBuscar').value = b.dataset.cliente; $('eMes').value = ''; $('eEstado').value = '';
+  pintarEnvios(); irA('envios');
+});
+
+// ---- GASTOS ----
+const formGasto = crud({ coleccion: 'gastos', form: 'fGasto', guardar: 'btnGastoGuardar', cancelar: 'btnGastoCancelar', msg: 'msgGasto',
+  titulo: 'hGasto', nuevo: 'Nuevo gasto', editando: 'Editar gasto', alLimpiar: () => { $('fGasto').elements.fecha.value = hoyIso(); } });
+function pintarGastos() {
+  const g = libro.calculo.gastos;
+  tabla('tGastos', [['Fecha'], ['Concepto'], ['Categoría'], ['Monto', 1], ['']],
+    g.map((x) => `<tr><td>${fechaCorta(x.fecha)}</td><td>${esc(x.concepto)}</td><td>${esc(x.categoria)}</td><td class="n">${brl(x.montoBrl)}</td><td>${acc('gastos', x.id, 'editar', 'borrar')}</td></tr>`),
+    `<tr><td colspan="3">Total</td><td class="n">${brl(g.reduce((a, x) => a + x.montoBrl, 0))}</td><td></td></tr>`);
+}
+
+// ---- REPORTES ----
+function pintarReportes() {
+  const c = libro.calculo, meses = c.porMes;
+  barras($('rGrafico'), meses.slice(-12).map((m) => ({ valor: m.neto, etiqueta: nombreMes(m.periodo) + ' (utilidad neta)', corta: nombreMes(m.periodo) })), 220);
+  const s = (f) => meses.reduce((a, m) => a + f(m), 0);
+  const filaMes = (m, etiqueta) => `<td class="n">${m.envios}</td><td class="n">${brl(m.brl)}</td><td class="n">${num(m.cup, 0)}</td><td class="n">${brl(m.costo)}</td>` +
+    `<td class="n ${signo(m.ganancia)}">${brl(m.ganancia)}</td><td class="n">${brl(m.gastos)}</td><td class="n ${signo(m.neto)}"><b>${brl(m.neto)}</b></td>` +
+    `<td class="n">${pct(m.margen)}</td><td class="n ${m.perdidas ? 'neg' : ''}">${m.perdidas}</td>`;
+  const cab = [['Periodo'], ['Envíos', 1], ['BRL cobrados', 1], ['CUP', 1], ['Costo real', 1], ['Ganancia bruta', 1], ['Gastos', 1], ['Utilidad neta', 1], ['Margen', 1], ['Con pérdida', 1]];
+  const tot = { envios: s((m) => m.envios), brl: s((m) => m.brl), cup: s((m) => m.cup), costo: s((m) => m.costo), ganancia: s((m) => m.ganancia), gastos: s((m) => m.gastos), neto: s((m) => m.neto), perdidas: s((m) => m.perdidas) };
+  tot.margen = tot.brl ? tot.ganancia / tot.brl : null;
+  tabla('tMeses', cab, [...meses].reverse().map((m) => `<tr><td>${nombreMes(m.periodo)}</td>${filaMes(m)}</tr>`), meses.length ? `<tr><td>Total</td>${filaMes(tot)}</tr>` : '');
+  const mes = $('rMes').value;
+  tabla('tDias', cab, c.porDia.filter((d) => !mes || d.periodo.startsWith(mes)).reverse().map((d) => `<tr><td>${fechaCorta(d.periodo)}</td>${filaMes(d)}</tr>`));
+  const so = c.resumen.socio;
+  $('rSocio').innerHTML = [
+    kpi(num(so.recibido, 0), 'CUP recibidos por tus lotes'),
+    kpi(num(so.entregado, 0), 'CUP ya entregados'),
+    kpi(num(so.pendiente, 0), 'CUP pendientes de entregar', so.pendiente ? 'rojo' : ''),
+    kpi(num(so.saldo, 0), 'CUP libres con el socio', so.saldo < 0 ? 'rojo' : 'verde'),
+  ].join('');
+}
+$('rMes').addEventListener('input', pintarReportes);
+
+// Selects que dependen de los datos (se conserva lo elegido).
+function llenarSelects() {
+  const c = libro.calculo, el = fEnvio.elements.lote, elegido = el.value;
+  el.innerHTML = '<option value="">Automático (FIFO)</option>' + c.lotes.map((l) =>
+    `<option value="${esc(l.codigo)}">${esc(l.codigo)} · ${esc(l.estado)} · quedan ${num(l.disponibles)} USDT</option>`).join('');
+  el.value = elegido;
+  for (const [id, todos] of [['eMes', 'Todos'], ['rMes', 'Todos']]) {
+    const s = $(id), v = s.value;
+    s.innerHTML = `<option value="">${todos}</option>` + [...c.porMes].reverse().map((m) => `<option value="${m.periodo}">${nombreMes(m.periodo)}</option>`).join('');
+    s.value = v;
+  }
+}
+
+function pintarTodo() {
+  llenarSelects();
+  pintarInicio(); pintarTasas(); pintarEnvios(); pintarLotes(); pintarClientes(); pintarGastos(); pintarReportes();
+}
+
+// Acciones de las tablas (editar, borrar, entregar, copiar).
+const editores = { envios: formEnvio, lotes: formLote, gastos: formGasto, tasas: formTasa };
+document.addEventListener('click', async (ev) => {
+  const b = ev.target.closest('[data-acc]');
+  if (!b) return;
+  const { acc: a, col, id } = b.dataset, item = crudo(col, id);
+  if (!item) return;
+  if (a === 'editar') {
+    editores[col].editar(item);
+    if (col === 'envios') { tasaManual = true; simularEnvio(); }
+  } else if (a === 'borrar') {
+    const que = { envios: `el envío de ${item.cliente} (${brl(item.montoBrl)})`, lotes: `el lote ${item.codigo}`, gastos: `el gasto «${item.concepto}»`, tasas: `la tasa ${item.tasaCup} del ${fechaCorta(item.fecha)}` }[col];
+    borrarDe(col, id, `¿Borrar ${que}? No se puede deshacer.`);
+  } else if (a === 'entregar') {
+    try { await guardarEn('envios', { ...item, estado: 'Entregado' }); } catch (e) { alert(e.message); }
+  } else if (a === 'copiar') {
+    const e = libro.calculo.envios.find((x) => x.id === id);
+    const texto = [`Entrega: ${num(e.cup, 0)} CUP`, e.tarjeta && `Tarjeta: ${e.tarjeta}`, e.telefono && `Teléfono: ${e.telefono}`, `Cliente: ${e.cliente}`].filter(Boolean).join('\n');
+    try { await navigator.clipboard.writeText(texto); b.textContent = '✅'; setTimeout(() => { b.textContent = '📋'; }, 1500); }
+    catch { prompt('Copia estos datos:', texto); }
+  }
+});
+
+formTasa.limpiar(); formEnvio.limpiar(); formGasto.limpiar();
+irA(location.hash.slice(1) || 'inicio');
+cargarErp().then(() => formLote.limpiar());
 
 turnoAuto();
 cargarMercado();

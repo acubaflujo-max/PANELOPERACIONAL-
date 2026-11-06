@@ -3,3 +3,8 @@ config.json
 test
 *.bat
 README.md
+erp.json
+erp.json.tmp
+erp-respaldos
+*.zip
+.claude

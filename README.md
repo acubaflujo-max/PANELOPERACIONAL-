@@ -13,6 +13,24 @@ Escribes **CUP por USD** (lo que te da tu socio), el panel trae el **USD/BRL**, 
 Los supuestos (spread, comisiones, margen, colchón) se editan en el panel y se guardan en `config.json`.
 La URL y la apikey se guardan en `%LOCALAPPDATA%\FlujoBot\evolution.json` (fuera de Drive).
 
+## ERP (pestañas Inicio, Envíos, Lotes USDT, Clientes, Gastos, Reportes)
+- **Lotes USDT**: cada compra en Binance (USDT, BRL pagados, CUP por USDT del socio). Calcula costo, tasa de equilibrio y saldo.
+- **Envíos**: cada remesa. Si no eliges lote, se asigna sola al lote más antiguo con saldo (FIFO) y, si no alcanza, sigue con el siguiente.
+  Muestra costo real, ganancia y margen antes de guardar. 📋 copia los datos de entrega para el socio.
+- **Tasas**: además del mercado, compara la tasa con el costo real del lote activo y avisa si pierdes. Al enviar por WhatsApp la tasa queda registrada.
+- **Reportes**: ganancia bruta, gastos y utilidad neta por mes y por día; saldo de CUP con el socio.
+- Los datos se guardan en `erp.json` (en `FLUJOBOT_DATA` en el servidor) con una copia diaria en `erp-respaldos/` (30 días).
+  Cada pestaña exporta CSV para Excel. Fórmulas iguales a `Modelo_Remesas_Flujo_Cuba_v2.xlsx` (ver `npm test`).
+
+## Base de datos en Supabase (opcional)
+- Proyecto: `acubaflujo` (https://kbvwjwcaxehrupwvvzjo.supabase.co). Tablas `lotes`, `envios`, `gastos`, `tasas` con RLS
+  activado y sin políticas: las claves públicas no ven nada; solo el servidor del panel entra con la **clave secreta**.
+- En el panel: Inicio → «Base de datos» → URL del proyecto + clave secreta (Project Settings → API Keys → Secret keys) →
+  «Probar y conectar». Se guarda en `%LOCALAPPDATA%\FlujoBot\supabase.json` (fuera de Drive). «Desconectar» vuelve a `erp.json`.
+- En el VPS/Docker: variables de entorno `SUPABASE_URL` y `SUPABASE_SECRET_KEY` (el panel no las puede cambiar).
+- Con Supabase conectado, el panel guarda una copia diaria en `erp-respaldos/supabase-AAAA-MM-DD.json` (el plan gratuito no tiene respaldos).
+- «Subir datos del archivo local» copia `erp.json` a Supabase (actualiza por id, no borra nada).
+
 ## Notas
 - Solo se envía al pulsar «Enviar» y confirmar. Nada es automático.
 - USD/BRL de referencia: AwesomeAPI (dólar comercial), con Binance USDT/BRL público como respaldo. Ajústalo a tu cotización real.
