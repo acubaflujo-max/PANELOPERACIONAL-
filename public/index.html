@@ -517,6 +517,11 @@
           <section>
             <div class="cab"><div><h2>Mensaje y alertas</h2><p>El enlace va al pie de cada publicación</p></div></div>
             <div><label for="enlace">Enlace del grupo</label><input id="enlace" type="url"></div>
+            <div style="margin-top:12px">
+              <label for="contacto">WhatsApp para «Toca aquí para hacer tu envío» (con 55)</label>
+              <input id="contacto" type="tel" inputmode="numeric" placeholder="5548999998888">
+              <p class="nota" style="margin-top:6px">Va como enlace en la tasa de «publicar ahora»: abre el chat con «Hola, quiero hacer un envío a Cuba» ya escrito. Vacío = sin enlace. Los turnos automáticos usan el número puesto en n8n.</p>
+            </div>
             <div style="margin-top:12px"><label for="alertaUsdt">Avisarme cuando queden menos de (USDT)</label><input id="alertaUsdt" type="number" step="1" min="0"></div>
           </section>
         </div>
@@ -688,7 +693,7 @@ async function refrescarEstado(inicial) {
     });
     actualizarBoton();
     if (inicial) {
-      dibujarSupuestos(config.supuestos); dibujarTarifa(config.tarifa); $('enlace').value = config.enlace; window.destinoGuardado = config.destinoId;
+      dibujarSupuestos(config.supuestos); dibujarTarifa(config.tarifa); $('enlace').value = config.enlace; $('contacto').value = config.contacto || ''; window.destinoGuardado = config.destinoId;
       configActual = config; $('alertaUsdt').value = config.alertaUsdt;
       const c = w.conf || {};
       $('evoUrl').value = c.url || ''; if (c.instance) $('evoInst').value = c.instance;
@@ -911,7 +916,8 @@ $('btnGuardar').onclick = async () => {
   const t = {};
   document.querySelectorAll('#tarifa input').forEach((i) => { t[i.dataset.t] = parseFloat(i.value); });
   try {
-    const nuevo = await api('/api/config', { supuestos: s, tarifa: t, enlace: $('enlace').value, alertaUsdt: parseFloat($('alertaUsdt').value) });
+    const nuevo = await api('/api/config', { supuestos: s, tarifa: t, enlace: $('enlace').value, contacto: $('contacto').value, alertaUsdt: parseFloat($('alertaUsdt').value) });
+    $('contacto').value = nuevo.contacto || '';
     supuestosGuardados = nuevo.supuestos;
     configActual = { ...configActual, ...nuevo };
     cargarErp();

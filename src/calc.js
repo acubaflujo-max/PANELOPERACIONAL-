@@ -35,8 +35,12 @@ function turnoActual(fecha = new Date()) {
 
 const fmt = (n, dec) => n.toFixed(dec).replace('.', ',');
 
+// Enlace que abre el chat con el negocio y el texto ya escrito: hace de botón en cualquier teléfono.
+const enlaceContacto = (numero) =>
+  `https://wa.me/${numero}?text=${encodeURIComponent('Hola, quiero hacer un envío a Cuba')}`;
+
 // Solo se publica la tasa de envío en CUP por real; la entrega en USD no se anuncia.
-function armarMensaje({ tasaCup, tasaPequena }, { turno, fecha = new Date(), tarifa = DEFAULT_TARIFA, enlace = DEFAULT_ENLACE }) {
+function armarMensaje({ tasaCup, tasaPequena }, { turno, fecha = new Date(), tarifa = DEFAULT_TARIFA, enlace = DEFAULT_ENLACE, contacto = '' }) {
   const dd = String(fecha.getDate()).padStart(2, '0');
   const mm = String(fecha.getMonth() + 1).padStart(2, '0');
   return [
@@ -49,11 +53,11 @@ function armarMensaje({ tasaCup, tasaPequena }, { turno, fecha = new Date(), tar
     `Envío mínimo: ${tarifa.montoMinimoBrl} BRL`,
     '',
     'Tasa vigente hasta la próxima actualización.',
-    'Escríbenos para hacer tu envío ✉️',
+    ...(contacto ? ['', '📲 *Toca aquí para hacer tu envío:*', enlaceContacto(contacto)] : ['Escríbenos para hacer tu envío ✉️']),
     '',
     '👥 Puedes unir a cualquier persona al grupo con este enlace:',
     enlace,
   ].join('\n');
 }
 
-module.exports = { DEFAULT_SUPUESTOS, DEFAULT_TARIFA, DEFAULT_ENLACE, calcular, turnoActual, armarMensaje };
+module.exports = { DEFAULT_SUPUESTOS, DEFAULT_TARIFA, DEFAULT_ENLACE, calcular, turnoActual, armarMensaje, enlaceContacto };

@@ -47,9 +47,9 @@ function leerConfig() {
   try {
     const c = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
     return { destinoId: c.destinoId || '', supuestos: { ...DEFAULT_SUPUESTOS, ...c.supuestos }, tarifa: { ...DEFAULT_TARIFA, ...c.tarifa }, enlace: c.enlace || DEFAULT_ENLACE,
-      alertaUsdt: Number.isFinite(c.alertaUsdt) ? c.alertaUsdt : ALERTA_USDT };
+      contacto: c.contacto || '', alertaUsdt: Number.isFinite(c.alertaUsdt) ? c.alertaUsdt : ALERTA_USDT };
   } catch {
-    return { destinoId: '', supuestos: { ...DEFAULT_SUPUESTOS }, tarifa: { ...DEFAULT_TARIFA }, enlace: DEFAULT_ENLACE, alertaUsdt: ALERTA_USDT };
+    return { destinoId: '', supuestos: { ...DEFAULT_SUPUESTOS }, tarifa: { ...DEFAULT_TARIFA }, enlace: DEFAULT_ENLACE, contacto: '', alertaUsdt: ALERTA_USDT };
   }
 }
 
@@ -144,13 +144,13 @@ const rutas = {
   'GET /api/destinos': async () => wa.listarDestinos(),
 
   'POST /api/calcular': async (body) => {
-    const { supuestos, tarifa, enlace } = leerConfig();
+    const { supuestos, tarifa, enlace, contacto } = leerConfig();
     const r = calcular({ usdBrl: Number(body.usdBrl), cupUsd: Number(body.cupUsd) }, supuestos, tarifa);
     const turno = body.turno || turnoActual();
     // Además del mercado, se compara con lo que de verdad costó el USDT del lote activo.
     let lote = null, avisoDb = null;
     try { lote = erp.loteActivo(await almacen.leer(), supuestos); } catch (e) { avisoDb = e.message; }
-    return { ...r, lote, avisoDb, mensaje: armarMensaje(r, { turno, tarifa, enlace }) };
+    return { ...r, lote, avisoDb, mensaje: armarMensaje(r, { turno, tarifa, enlace, contacto }) };
   },
 
   'POST /api/config': async (body) => {
@@ -160,12 +160,18 @@ const rutas = {
       supuestos: body.supuestos ? validarSupuestos(body.supuestos) : actual.supuestos,
       tarifa: body.tarifa ? validarTarifa(body.tarifa) : actual.tarifa,
       enlace: actual.enlace,
+      contacto: actual.contacto,
       alertaUsdt: actual.alertaUsdt,
     };
     if (body.alertaUsdt !== undefined) {
       const a = Number(body.alertaUsdt);
       if (!Number.isFinite(a) || a < 0 || a > 1e7) throw new Error('La alerta de USDT debe ser un número válido (0 o mayor)');
       nuevo.alertaUsdt = a;
+    }
+    if (typeof body.contacto === 'string') {
+      const n = body.contacto.replace(/\D/g, '');
+      if (n && !/^[1-9]\d{9,14}$/.test(n)) throw new Error('El WhatsApp de contacto va con código de país, ej. 5548999998888');
+      nuevo.contacto = n;
     }
     if (typeof body.enlace === 'string') {
       const e = body.enlace.trim();

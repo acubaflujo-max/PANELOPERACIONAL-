@@ -31,6 +31,15 @@ test('el mensaje usa coma decimal y el turno', () => {
   assert.match(m, /Menos de 100 BRL: 1 BRL = \*72,0 CUP\*/);
   assert.match(m, /Envío mínimo: 20 BRL/);
   assert.match(m, /unir a cualquier persona[^\n]*\nhttps:\/\/chat\.whatsapp\.com\/\w+$/);
+  assert.match(m, /Escríbenos para hacer tu envío/);
+  assert.doesNotMatch(m, /wa\.me/);
+});
+
+test('con número de contacto, el mensaje lleva el enlace que abre el chat', () => {
+  const m = armarMensaje({ tasaCup: 74, tasaPequena: 72 }, { turno: 'Tarde', fecha: new Date(2026, 10, 1), contacto: '5511999998888' });
+  assert.match(m, /Toca aquí para hacer tu envío:\*\nhttps:\/\/wa\.me\/5511999998888\?text=Hola%2C%20quiero%20hacer%20un%20env%C3%ADo%20a%20Cuba\n/);
+  assert.doesNotMatch(m, /Escríbenos/);
+  assert.match(m, /chat\.whatsapp\.com\/\w+$/);
 });
 
 test('turno según la hora', () => {
