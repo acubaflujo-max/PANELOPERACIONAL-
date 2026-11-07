@@ -226,6 +226,7 @@
     <main>
       <!-- ================= INICIO ================= -->
       <div data-tab="inicio" class="pagina">
+        <div class="estado error avisoWa" hidden></div>
         <div class="grid-hero">
           <section>
             <div class="cab">
@@ -265,6 +266,7 @@
 
       <!-- ================= TASA DEL DÍA ================= -->
       <div data-tab="tasas" class="pagina">
+        <div class="estado error avisoWa" hidden></div>
         <div class="grid-tasa">
           <div class="col">
             <section>
@@ -662,7 +664,7 @@ function dibujarTarifa(t) {
 }
 
 // ===================== WHATSAPP =====================
-let conectadoAntes = false;
+let conectadoAntes = false, waEstado = '';
 async function refrescarEstado(inicial) {
   try {
     const { whatsapp: w, config } = await api('/api/estado');
@@ -675,6 +677,16 @@ async function refrescarEstado(inicial) {
       w.estado === 'listo' ? 'WhatsApp conectado' : w.estado === 'sin_configurar' ? 'WhatsApp sin configurar' : 'WhatsApp desconectado');
     $('qr').hidden = !w.qr;
     if (w.qr) $('qr').src = w.qr;
+    waEstado = w.estado;
+    const textoWa = w.estado === 'qr'
+      ? '⚠️ WhatsApp se desvinculó: el bot no puede publicar las tasas ni dar la bienvenida. Escanea el QR con el teléfono del bot.'
+      : w.estado === 'sin_configurar' ? '⚠️ WhatsApp no está configurado: no salen publicaciones.'
+      : '⚠️ WhatsApp no está conectado ahora mismo. Mientras tanto no salen publicaciones.';
+    document.querySelectorAll('.avisoWa').forEach((d) => {
+      d.hidden = w.estado === 'listo';
+      d.innerHTML = `${esc(textoWa)} <button class="mini" data-ir="ajustes" style="margin-left:6px">Ir a WhatsApp</button>`;
+    });
+    actualizarBoton();
     if (inicial) {
       dibujarSupuestos(config.supuestos); dibujarTarifa(config.tarifa); $('enlace').value = config.enlace; window.destinoGuardado = config.destinoId;
       configActual = config; $('alertaUsdt').value = config.alertaUsdt;
@@ -776,7 +788,8 @@ async function calcular() {
 
 function actualizarBoton() {
   $('btnFijar').disabled = !ultimoCalculo;
-  $('btnEnviar').disabled = !(ultimoCalculo && $('mensaje').value.trim() && $('destino').value);
+  $('btnEnviar').disabled = !(ultimoCalculo && $('mensaje').value.trim() && $('destino').value && waEstado === 'listo');
+  $('btnEnviar').title = waEstado === 'listo' ? '' : 'WhatsApp no está conectado';
 }
 
 let tCalc;

@@ -53,7 +53,10 @@ async function llamar(metodo, ruta, cuerpo) {
   let json;
   try { json = JSON.parse(texto); } catch { json = { raw: texto }; }
   if (!r.ok) {
-    const e = new Error(json.response?.message?.join?.('; ') || json.message || json.error || `HTTP ${r.status}`);
+    // Evolution v2 manda el detalle en response.message (texto o lista); «error» solo dice «Internal Server Error».
+    const m = json.response?.message;
+    const detalle = Array.isArray(m) ? m.flat().map((x) => (typeof x === 'string' ? x : JSON.stringify(x))).join('; ') : typeof m === 'string' ? m : '';
+    const e = new Error(detalle || json.message || json.error || `HTTP ${r.status}`);
     e.status = r.status;
     throw e;
   }
@@ -62,7 +65,14 @@ async function llamar(metodo, ruta, cuerpo) {
 
 const qrSrc = (b64) => (b64 ? (b64.startsWith('data:') ? b64 : `data:image/png;base64,${b64}`) : null);
 
-// Estado para el panel: consulta la API en cada llamada (el panel hace polling cada 3 s).
+// El QR se pide como mucho cada 20 s: pedir /connect en cada consulta reinicia el intento de conexión.
+let qrGuardado = { cuando: 0, base64: null };
+
+async function estadoConexion(c) {
+  return (await llamar('GET', `/instance/connectionState/${encodeURIComponent(c.instance)}`)).instance?.state;
+}
+
+// Estado para el panel: el panel consulta seguido mientras WhatsApp no está conectado.
 async function obtenerEstado() {
   const c = leerConf();
   if (!c.url || !c.apikey || !c.instance) {
@@ -72,7 +82,7 @@ async function obtenerEstado() {
   try {
     let state;
     try {
-      state = (await llamar('GET', `/instance/connectionState/${encodeURIComponent(c.instance)}`)).instance?.state;
+      state = await estadoConexion(c);
     } catch (e) {
       if (e.status !== 404) throw e;
       // La instancia no existe todavía: se crea y la respuesta ya trae el QR.
@@ -81,9 +91,12 @@ async function obtenerEstado() {
       });
       return { estado: 'qr', qr: qrSrc(nueva.qrcode?.base64), error: null, conf };
     }
-    if (state === 'open') return { estado: 'listo', qr: null, error: null, conf };
-    const q = await llamar('GET', `/instance/connect/${encodeURIComponent(c.instance)}`);
-    return { estado: q.base64 ? 'qr' : 'autenticando', qr: qrSrc(q.base64), error: null, conf };
+    if (state === 'open') { qrGuardado = { cuando: 0, base64: null }; return { estado: 'listo', qr: null, error: null, conf }; }
+    if (Date.now() - qrGuardado.cuando > 20_000) {
+      const q = await llamar('GET', `/instance/connect/${encodeURIComponent(c.instance)}`);
+      qrGuardado = { cuando: Date.now(), base64: q.base64 || null };
+    }
+    return { estado: qrGuardado.base64 ? 'qr' : 'autenticando', qr: qrSrc(qrGuardado.base64), error: null, conf };
   } catch (e) {
     return { estado: 'error', qr: null, error: `Evolution API: ${e.message}`, conf };
   }
@@ -99,6 +112,13 @@ async function listarDestinos() {
 
 async function enviar(id, texto) {
   const c = leerConf();
+  if (!c.url || !c.apikey || !c.instance) throw new Error('WhatsApp no está configurado (Ajustes → WhatsApp).');
+  // Desvinculado, Evolution responde un 500 sin explicación: se avisa antes de intentar.
+  let estado;
+  try { estado = await estadoConexion(c); } catch (e) { throw new Error(`No se pudo consultar WhatsApp: ${e.message}`); }
+  if (estado !== 'open') {
+    throw new Error('WhatsApp no está conectado. Ve a Ajustes → WhatsApp y escanea el QR con el teléfono del bot.');
+  }
   const ruta = `/message/sendText/${encodeURIComponent(c.instance)}`;
   try {
     await llamar('POST', ruta, { number: id, text: texto });
