@@ -1570,9 +1570,14 @@ function pintarClientes() {
     lista.map((c) => `<tr><td><button class="mini sec" data-cliente="${esc(c.nombre)}">${esc(c.nombre)}</button></td><td class="n">${c.envios}</td>` +
       `<td class="n">${brl(c.brl)}</td><td class="n">${num(c.cup, 0)}</td><td class="n ${signo(c.ganancia)}">${brl(c.ganancia)}</td>` +
       `<td>${fechaCorta(c.primera)}</td><td>${fechaCorta(c.ultima)}</td><td>${esc(c.tarjeta)}</td><td>${esc(c.telefono)}</td></tr>`));
-  $('listaClientes').innerHTML = libro.calculo.clientes.map((c) => `<option value="${esc(c.nombre)}" label="${esc(c.telefono || c.tarjeta || '')}">`).join('');
+  $('listaClientes').innerHTML = libro.calculo.clientes.filter((c) => /\p{L}/u.test(c.nombre)).map((c) => `<option value="${esc(c.nombre)}" label="${esc(c.telefono || c.tarjeta || '')}">`).join('');
 }
 $('cBuscar').addEventListener('input', pintarClientes);
+// Las sugerencias solo aparecen al escribir 2 letras: un cliente nuevo no tiene que elegir de la lista.
+for (const inp of [fEnvio.elements.cliente, fOp.elements.cliente]) {
+  inp.removeAttribute('list');
+  inp.addEventListener('input', () => { if (inp.value.trim().length >= 2) inp.setAttribute('list', 'listaClientes'); else inp.removeAttribute('list'); });
+}
 $('tClientes').addEventListener('click', (ev) => {
   const b = ev.target.closest('[data-cliente]');
   if (!b) return;
