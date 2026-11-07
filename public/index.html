@@ -1343,7 +1343,9 @@ async function generarOp() {
   const monto = parseFloat(opv('montoBrl')), tasa = parseFloat(opv('tasa'));
   $('opCup').textContent = monto > 0 && tasa > 0 ? num(monto * tasa, 1) + ' CUP' : '–';
   const yo = ++opToken;
-  if (!(monto > 0) || !(tasa > 0) || !opv('cliente') || !opv('tarjeta')) { $('opTexto').value = ''; msgEn('msgOp', '', true); return actualizarOp(); }
+  const falta = [!opv('cliente') && 'el nombre del cliente', !opv('tarjeta') && 'la tarjeta', !(monto > 0) && 'el monto',
+    !(tasa > 0) && (libro?.calculo.resumen.ultimaTasa ? 'el cambio' : 'el cambio (aún no hay ninguna tasa registrada: escríbelo a mano o fíjala en «Tasa del día»)')].filter(Boolean);
+  if (falta.length) { $('opTexto').value = ''; msgEn('msgOp', `Falta ${falta.join(', ')}`, false); return actualizarOp(); }
   try {
     const r = await api('/api/operacion/mensaje', { cliente: opv('cliente'), telefonoCliente: opv('telefonoCliente'), tarjeta: opv('tarjeta'), confirmar: opv('confirmar'), montoBrl: monto, tasa });
     if (yo !== opToken) return;
