@@ -17,6 +17,8 @@
   [hidden] { display: none !important; }
   body { margin: 0; font: 15px/1.45 system-ui, sans-serif; background: var(--bg); color: var(--txt); }
   header { background: linear-gradient(135deg, var(--azul), var(--azul-osc)); color: #fff; padding: 18px 16px; border-bottom: 4px solid var(--rojo); }
+  header { position: relative; }
+  #salir { position: absolute; top: 18px; right: 16px; color: #fff; opacity: .8; font-size: 13px; text-decoration: none; }
   header h1 { margin: 0; font-size: 20px; }
   header p { margin: 2px 0 0; opacity: .8; font-size: 13px; }
   main { max-width: 760px; margin: 0 auto; padding: 16px; display: grid; gap: 14px; }
@@ -84,7 +86,11 @@
 <header>
   <h1>🇧🇷 Flujo Cuba Remesas 🇨🇺</h1>
   <p>Panel del negocio: tasas, envíos, fondo USDT, ganancias y pérdidas · <span id="modoDb"></span></p>
+  <a id="salir" href="/logout" hidden>Salir</a>
 </header>
+<script>
+  if (!['localhost', '127.0.0.1'].includes(location.hostname)) document.getElementById('salir').hidden = false;
+</script>
 <nav id="pestanas">
   <button data-ir="inicio">📊 Inicio</button>
   <button data-ir="tasas">💱 Tasas</button>
@@ -414,6 +420,7 @@ async function api(ruta, body) {
   const r = await fetch(ruta, body === undefined ? {} : {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
   });
+  if (r.status === 401) { location.href = '/login'; throw new Error('Sesión vencida, vuelve a entrar'); }
   const j = await r.json();
   if (!r.ok) throw new Error(j.error || 'Error');
   return j;

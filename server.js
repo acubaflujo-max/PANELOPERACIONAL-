@@ -6,11 +6,11 @@ const { obtenerUsdBrl } = require('./src/rates');
 const { obtenerMercado } = require('./src/mercado');
 const wa = require('./src/whatsapp');
 const n8n = require('./src/n8n');
+const sesion = require('./src/sesion');
 const erp = require('./src/erp');
 const { crearAlmacen } = require('./src/libro');
 const supabase = require('./src/supabase');
 
-const crypto = require('crypto');
 
 const PORT = Number(process.env.PORT) || 3030;
 const HOST = process.env.HOST || '127.0.0.1';
@@ -26,20 +26,22 @@ if (HOST !== '127.0.0.1' && HOST !== 'localhost' && !PANEL_PASSWORD) {
   process.exit(1);
 }
 
+// Entra con la cookie de sesión (página /login, solo contraseña). El encabezado Basic se sigue aceptando
+// para scripts, pero el navegador ya no muestra la ventana de usuario y contraseña.
 function autorizado(req) {
   if (!PANEL_PASSWORD) return true;
-  const h = req.headers.authorization || '';
-  const [tipo, cred] = h.split(' ');
+  if (sesion.sesionValida(sesion.leerCookie(req.headers.cookie), PANEL_PASSWORD)) return true;
+  const [tipo, cred] = (req.headers.authorization || '').split(' ');
   if (tipo !== 'Basic' || !cred) return false;
   const pass = Buffer.from(cred, 'base64').toString().split(':').slice(1).join(':');
-  const a = crypto.createHash('sha256').update(pass).digest();
-  const b = crypto.createHash('sha256').update(PANEL_PASSWORD).digest();
-  return crypto.timingSafeEqual(a, b);
+  return sesion.claveCorrecta(pass, PANEL_PASSWORD);
 }
 
 let fallos = 0;
 setInterval(() => { fallos = 0; }, 60_000).unref();
 const INDEX = path.join(__dirname, 'public', 'index.html');
+const LOGIN = path.join(__dirname, 'public', 'login.html');
+const entraPorHttps = (req) => req.headers['x-forwarded-proto'] === 'https';
 
 function leerConfig() {
   try {
@@ -219,24 +221,42 @@ const rutas = {
 
 const server = http.createServer(async (req, res) => {
   try {
+    const url = new URL(req.url, 'http://localhost');
+    const redirigir = (destino, cabeceras = {}) => { res.writeHead(302, { Location: destino, ...cabeceras }); res.end(); };
+
     if (PANEL_PASSWORD) {
-      if (fallos >= 10) return responder(res, 429, { error: 'Demasiados intentos, espera un minuto' });
+      if (url.pathname === '/login' && req.method === 'GET') {
+        if (autorizado(req)) return redirigir('/');
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+        return res.end(fs.readFileSync(LOGIN));
+      }
+      if (url.pathname === '/login' && req.method === 'POST') {
+        if (fallos >= 10) return responder(res, 429, { error: 'Demasiados intentos, espera un minuto' });
+        if (!(req.headers['content-type'] || '').startsWith('application/json')) return responder(res, 415, { error: 'Se requiere application/json' });
+        const { clave } = await leerJson(req);
+        if (!sesion.claveCorrecta(clave ?? '', PANEL_PASSWORD)) {
+          fallos++;
+          return responder(res, 401, { error: 'Contraseña incorrecta' });
+        }
+        res.setHeader('Set-Cookie', sesion.cookieSesion(sesion.crearSesion(PANEL_PASSWORD), entraPorHttps(req)));
+        return responder(res, 200, { ok: true });
+      }
+      if (url.pathname === '/logout') return redirigir('/login', { 'Set-Cookie': sesion.cookieBorrada(entraPorHttps(req)) });
       if (!autorizado(req)) {
-        fallos++;
-        res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Flujo Cuba Remesas", charset="UTF-8"' });
-        return res.end('Autenticación requerida');
+        if (req.method === 'GET' && !url.pathname.startsWith('/api/')) return redirigir('/login');
+        return responder(res, 401, { error: 'Sesión vencida, vuelve a entrar' });
       }
     } else {
       const host = (req.headers.host || '').split(':')[0];
       if (host !== 'localhost' && host !== '127.0.0.1') return responder(res, 403, { error: 'Host no permitido' });
+      if (url.pathname === '/login' || url.pathname === '/logout') return redirigir('/');
     }
 
-    if (req.method === 'GET' && (req.url === '/' || req.url === '/index.html')) {
+    if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/index.html')) {
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
       return res.end(fs.readFileSync(INDEX));
     }
 
-    const url = new URL(req.url, 'http://localhost');
     const handler = rutas[`${req.method} ${url.pathname}`];
     if (!handler) return responder(res, 404, { error: 'No encontrado' });
 
