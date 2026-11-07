@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { calcular, armarMensaje, turnoActual, armarPlantillaDatos } = require('../src/calc');
+const { calcular, armarMensaje, turnoActual, armarPlantillaDatos, armarOperacion } = require('../src/calc');
 
 // Valores de ejemplo del Excel: USD/BRL 5,5 y CUP/USD 450 con los supuestos por defecto.
 test('coincide con la hoja Calculadora del Excel', () => {
@@ -54,6 +54,21 @@ test('plantilla de datos: pide los 4 datos y, con monto, cotiza en CUP', () => {
   assert.match(c, /Tu familia recibe: \*18\.450 CUP\* \(1 BRL = 184,5 CUP\)/);
   assert.match(c, /Pago por PIX\*\nChave PIX: abc/);
   assert.match(armarPlantillaDatos({ montoBrl: 55, tasa: 179.5 }), /9\.872,5 CUP/);
+});
+
+test('operación para el grupo: tarjeta en grupos de 4, total en CUP y datos de contacto', () => {
+  const m = armarOperacion({ cliente: ' Ana Pérez ', telefonoCliente: '+55 48 99999-8888', tarjeta: '9238-1299 79598952', confirmar: '56530422', montoBrl: 100, tasa: 190 }, new Date(2026, 10, 7, 9, 5));
+  assert.match(m, /07\/11 · 09:05/);
+  assert.match(m, /Cliente:\* Ana Pérez\n/);
+  assert.match(m, /Número del cliente:\* \+55 48 99999-8888/);
+  assert.match(m, /Tarjeta:\* 9238 1299 7959 8952/);
+  assert.match(m, /Número a confirmar:\* 56530422/);
+  assert.match(m, /Monto:\* R\$ 100,00/);
+  assert.match(m, /1 BRL = 190,0 CUP/);
+  assert.match(m, /Total a pasar:\* 19\.000 CUP/);
+  assert.match(armarOperacion({ cliente: 'X', tarjeta: '9238129979598952', montoBrl: 55, tasa: 179.5 }), /9\.872,5 CUP[\s\S]*$/);
+  assert.throws(() => armarOperacion({ cliente: 'X', tarjeta: '1234', montoBrl: 10, tasa: 190 }), /16 dígitos/);
+  assert.throws(() => armarOperacion({ cliente: '', tarjeta: '9238129979598952', montoBrl: 10, tasa: 190 }), /cliente/);
 });
 
 test('turno según la hora', () => {

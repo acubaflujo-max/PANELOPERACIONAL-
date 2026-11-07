@@ -85,4 +85,36 @@ function armarPlantillaDatos({ montoBrl, tasa, pix = '' } = {}) {
   ].join('\n');
 }
 
-module.exports = { DEFAULT_SUPUESTOS, DEFAULT_TARIFA, DEFAULT_ENLACE, calcular, turnoActual, armarMensaje, enlaceContacto, armarPlantillaDatos };
+// Tarjeta en grupos de 4; acepta espacios o guiones y exige 16 dígitos.
+function formatearTarjeta(t) {
+  const d = String(t || '').replace(/\D/g, '');
+  if (d.length !== 16) throw new Error('La tarjeta debe tener 16 dígitos');
+  return d.replace(/(\d{4})(?=\d)/g, '$1 ');
+}
+
+// Mensaje para el grupo de operaciones: todo lo que el socio necesita para pasar los CUP.
+function armarOperacion({ cliente, telefonoCliente = '', tarjeta, confirmar = '', montoBrl, tasa }, fecha = new Date()) {
+  const nombre = String(cliente || '').trim();
+  if (!nombre) throw new Error('Falta el nombre del cliente');
+  if (!(montoBrl > 0) || !(tasa > 0)) throw new Error('Faltan el monto y la tasa');
+  const cup = montoBrl * tasa;
+  const dd = String(fecha.getDate()).padStart(2, '0');
+  const mm = String(fecha.getMonth() + 1).padStart(2, '0');
+  const hh = String(fecha.getHours()).padStart(2, '0');
+  const mi = String(fecha.getMinutes()).padStart(2, '0');
+  return [
+    '🆕 *NUEVA OPERACIÓN*',
+    `📅 ${dd}/${mm} · ${hh}:${mi}`,
+    '',
+    `👤 *Cliente:* ${nombre}`,
+    `📱 *Número del cliente:* ${String(telefonoCliente).trim() || '—'}`,
+    `💳 *Tarjeta:* ${formatearTarjeta(tarjeta)}`,
+    `📞 *Número a confirmar:* ${String(confirmar).trim() || '—'}`,
+    '',
+    `💵 *Monto:* R$ ${numBr(montoBrl, 2)}`,
+    `💱 *Cambio:* 1 BRL = ${fmt(tasa, 1)} CUP`,
+    `🇨🇺 *Total a pasar:* ${numBr(cup, Number.isInteger(cup) ? 0 : 1)} CUP`,
+  ].join('\n');
+}
+
+module.exports = { DEFAULT_SUPUESTOS, DEFAULT_TARIFA, DEFAULT_ENLACE, calcular, turnoActual, armarMensaje, enlaceContacto, armarPlantillaDatos, formatearTarjeta, armarOperacion };

@@ -181,6 +181,7 @@
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <symbol id="i-inicio" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></symbol>
   <symbol id="i-tasa" viewBox="0 0 24 24"><path d="M4 8h14l-4-4M20 16H6l4 4"/></symbol>
+  <symbol id="i-operacion" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h4"/></symbol>
   <symbol id="i-envios" viewBox="0 0 24 24"><path d="M21 3 10 14M21 3l-7 18-4-7-7-4z"/></symbol>
   <symbol id="i-lotes" viewBox="0 0 24 24"><path d="M12 3 3 7.5 12 12l9-4.5zM3 12l9 4.5 9-4.5M3 16.5 12 21l9-4.5"/></symbol>
   <symbol id="i-clientes" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18.5 14.5A6.5 6.5 0 0 1 21.5 20"/></symbol>
@@ -200,6 +201,7 @@
     <nav id="pestanas" aria-label="Secciones">
       <button data-ir="inicio"><svg class="ic"><use href="#i-inicio"/></svg>Inicio</button>
       <button data-ir="tasas"><svg class="ic"><use href="#i-tasa"/></svg>Tasa del día</button>
+      <button data-ir="operaciones"><svg class="ic"><use href="#i-operacion"/></svg>Operaciones</button>
       <button data-ir="envios"><svg class="ic"><use href="#i-envios"/></svg>Envíos</button>
       <button data-ir="lotes"><svg class="ic"><use href="#i-lotes"/></svg>Lotes USDT</button>
       <button data-ir="clientes"><svg class="ic"><use href="#i-clientes"/></svg>Clientes</button>
@@ -374,6 +376,50 @@
             <p class="nota">Sin USD/BRL el bot no puede detectar un cambio fuerte del dólar. Corregir una tasa vieja no cambia la vigente.</p>
           </details>
           <div class="tabla"><table id="tTasas"></table></div>
+        </section>
+      </div>
+
+      <!-- ================= OPERACIONES ================= -->
+      <div data-tab="operaciones" class="pagina">
+        <section>
+          <div class="cab"><div><h2>Nueva operación</h2><p>Sube o pega (Ctrl+V) la foto de la tarjeta: el panel lee el número, tú lo compruebas y mandas el mensaje al grupo.</p></div></div>
+          <div class="fila">
+            <div>
+              <label for="opArchivo">Foto de la tarjeta</label>
+              <input id="opArchivo" type="file" accept="image/*">
+              <p class="nota" id="opLeer">La foto se lee en este navegador y no se sube a ningún servidor. La primera vez tarda unos segundos.</p>
+            </div>
+            <div><img id="opFoto" alt="Foto de la tarjeta" hidden style="max-width:100%;max-height:200px;border-radius:12px;border:1px solid #ddd"></div>
+          </div>
+          <form id="fOp" class="fila" style="margin-top:14px" onsubmit="return false">
+            <div><label>Nombre del cliente</label><input name="cliente" list="listaClientes" required autocomplete="off"></div>
+            <div><label>Número del cliente (WhatsApp)</label><input name="telefonoCliente" inputmode="tel" autocomplete="off" placeholder="+55 48 99999-8888"></div>
+            <div><label>Número de la tarjeta (16 dígitos)</label><input name="tarjeta" inputmode="numeric" autocomplete="off" placeholder="9238 1299 7959 8952"></div>
+            <div><label>Número a confirmar (teléfono en Cuba)</label><input name="confirmar" inputmode="tel" autocomplete="off"></div>
+            <div><label>Monto (BRL)</label><input name="montoBrl" type="number" step="0.01" min="0" inputmode="decimal" required></div>
+            <div><label>Cambio (CUP por 1 BRL)</label><input name="tasa" type="number" step="0.5" min="0" inputmode="decimal" required></div>
+          </form>
+          <div class="res" style="margin-top:14px"><div class="kpi"><b id="opCup">–</b><span>Total en CUP a pasar</span></div></div>
+        </section>
+        <section>
+          <div class="cab"><div><h2>Mensaje para el grupo</h2><p>Puedes retocarlo antes de enviar. Si cambias un dato de arriba, se vuelve a generar.</p></div></div>
+          <div class="fila">
+            <div>
+              <label for="destinoOps">Grupo de operaciones</label>
+              <div class="linea-input">
+                <select id="destinoOps"><option value="">— elige el grupo —</option></select>
+                <button class="sec" id="btnDestinosOps" type="button">Actualizar</button>
+              </div>
+            </div>
+          </div>
+          <textarea id="opTexto" style="margin-top:12px;min-height:260px" placeholder="Llena cliente, tarjeta, monto y cambio para ver el mensaje"></textarea>
+          <label style="display:flex;gap:8px;align-items:center;margin-top:10px"><input type="checkbox" id="opRegistrar" checked style="width:auto"> Registrar también como envío pendiente en el ERP</label>
+          <div class="acciones">
+            <button class="enviar" id="btnOpEnviar" disabled>Enviar al grupo</button>
+            <button class="sec" id="btnOpCopiar" type="button">Copiar mensaje</button>
+            <button class="sec" id="btnOpLimpiar" type="button">Nueva operación</button>
+            <span id="msgOp"></span>
+          </div>
         </section>
       </div>
 
@@ -627,6 +673,7 @@ const TARIFA = {
 const PAGINAS = {
   inicio: 'Resumen del negocio y del envío automático',
   tasas: 'Calcula la tasa, fíjala y el bot la publica en cada turno',
+  operaciones: 'Foto de la tarjeta → mensaje para el grupo de operaciones',
   envios: 'Cada remesa con su costo real y ganancia',
   lotes: 'Compras de USDT y su costo',
   clientes: 'Historial por cliente',
@@ -708,7 +755,7 @@ async function refrescarEstado(inicial) {
       d.hidden = w.estado === 'listo';
       d.innerHTML = `${esc(textoWa)} <button class="mini" data-ir="ajustes" style="margin-left:6px">Ir a WhatsApp</button>`;
     });
-    actualizarBoton();
+    actualizarBoton(); actualizarOp();
     if (inicial) {
       dibujarSupuestos(config.supuestos); dibujarTarifa(config.tarifa); $('enlace').value = config.enlace; $('contacto').value = config.contacto || ''; $('pix').value = config.pix || ''; window.destinoGuardado = config.destinoId;
       configActual = config; $('alertaUsdt').value = config.alertaUsdt;
@@ -739,6 +786,7 @@ async function cargarDestinos() {
       lista.map((d) => `<option value="${esc(d.id)}">${esc(d.tipo)}: ${esc(d.nombre)}</option>`).join('');
     if (window.destinoGuardado) $('destino').value = window.destinoGuardado;
     pintarDestino();
+    pintarDestinosOps(lista);
   } catch (e) { aviso(e.message, false); }
 }
 
@@ -1264,6 +1312,153 @@ $('btnPEnvio').onclick = () => {
   fEnvio.scrollIntoView({ behavior: 'smooth', block: 'center' });
   fEnvio.elements.cliente.focus();
 };
+
+
+// ===================== OPERACIONES =====================
+const fOp = $('fOp');
+const opv = (n) => fOp.elements[n].value.trim();
+let opTasaManual = false, opEnviado = false, opToken = 0, tOp;
+
+function pintarDestinosOps(lista) {
+  const guardado = $('destinoOps').value || configActual.destinoOpsId || '';
+  $('destinoOps').innerHTML = '<option value="">— elige el grupo —</option>' +
+    lista.map((d) => `<option value="${esc(d.id)}">${esc(d.nombre)}</option>`).join('');
+  // Sin grupo guardado, se sugiere el que se llame «operaciones» (se guarda al enviar).
+  $('destinoOps').value = guardado || lista.find((d) => /operaciones/i.test(d.nombre))?.id || '';
+  actualizarOp();
+}
+$('destinoOps').addEventListener('change', async () => {
+  configActual.destinoOpsId = $('destinoOps').value;
+  try { await api('/api/config', { destinoOpsId: $('destinoOps').value }); toast('Grupo de operaciones guardado'); } catch (e) { toast(e.message, false); }
+  actualizarOp();
+});
+$('btnDestinosOps').onclick = cargarDestinos;
+
+function actualizarOp() {
+  $('btnOpEnviar').disabled = !($('opTexto').value.trim() && $('destinoOps').value && waEstado === 'listo' && !opEnviado);
+  $('btnOpEnviar').title = waEstado === 'listo' ? (opEnviado ? 'Ya enviada: pulsa «Nueva operación»' : '') : 'WhatsApp no está conectado';
+}
+
+async function generarOp() {
+  const monto = parseFloat(opv('montoBrl')), tasa = parseFloat(opv('tasa'));
+  $('opCup').textContent = monto > 0 && tasa > 0 ? num(monto * tasa, 1) + ' CUP' : '–';
+  const yo = ++opToken;
+  if (!(monto > 0) || !(tasa > 0) || !opv('cliente') || !opv('tarjeta')) { $('opTexto').value = ''; msgEn('msgOp', '', true); return actualizarOp(); }
+  try {
+    const r = await api('/api/operacion/mensaje', { cliente: opv('cliente'), telefonoCliente: opv('telefonoCliente'), tarjeta: opv('tarjeta'), confirmar: opv('confirmar'), montoBrl: monto, tasa });
+    if (yo !== opToken) return;
+    $('opTexto').value = r.texto; msgEn('msgOp', '', true);
+  } catch (e) { if (yo !== opToken) return; $('opTexto').value = ''; msgEn('msgOp', e.message, false); }
+  actualizarOp();
+}
+fOp.addEventListener('input', (ev) => {
+  opEnviado = false;
+  if (ev.target.name === 'tasa') opTasaManual = true;
+  if (ev.target.name === 'montoBrl' && !opTasaManual) fOp.elements.tasa.value = tasaPorDefecto(parseFloat(ev.target.value));
+  clearTimeout(tOp); tOp = setTimeout(generarOp, 300);
+});
+fOp.elements.cliente.addEventListener('change', () => {
+  const c = libro?.calculo.clientes.find((x) => x.nombre.toLowerCase() === opv('cliente').toLowerCase());
+  if (!c) return;
+  if (!opv('tarjeta')) fOp.elements.tarjeta.value = c.tarjeta;
+  if (!opv('confirmar')) fOp.elements.confirmar.value = c.telefono;
+  generarOp();
+});
+$('opTexto').addEventListener('input', actualizarOp);
+
+$('btnOpCopiar').onclick = async () => {
+  try { await navigator.clipboard.writeText($('opTexto').value); toast('Mensaje copiado'); }
+  catch { $('opTexto').select(); document.execCommand('copy'); toast('Mensaje copiado'); }
+};
+$('btnOpLimpiar').onclick = () => {
+  fOp.reset(); opTasaManual = false; opEnviado = false; opToken++;
+  $('opTexto').value = ''; $('opCup').textContent = '–'; $('opFoto').hidden = true; $('opArchivo').value = '';
+  $('opLeer').textContent = 'La foto se lee en este navegador y no se sube a ningún servidor. La primera vez tarda unos segundos.';
+  msgEn('msgOp', '', true); actualizarOp(); fOp.elements.cliente.focus();
+};
+
+$('btnOpEnviar').onclick = async () => {
+  const grupo = $('destinoOps').selectedOptions[0]?.textContent || '';
+  if (!confirm(`¿Enviar esta operación al grupo «${grupo}»?\n\n${$('opTexto').value}`)) return;
+  $('btnOpEnviar').disabled = true;
+  try {
+    await api('/api/config', { destinoOpsId: $('destinoOps').value });
+    await api('/api/operacion/enviar', { mensaje: $('opTexto').value });
+  } catch (e) { msgEn('msgOp', e.message, false); return actualizarOp(); }
+  opEnviado = true; actualizarOp();
+  if (!$('opRegistrar').checked) return msgEn('msgOp', '✅ Enviado al grupo', true);
+  try {
+    await guardarEn('envios', { fecha: hoyIso(), cliente: opv('cliente'), montoBrl: opv('montoBrl'), tasa: opv('tasa'), estado: 'Pendiente',
+      tarjeta: opv('tarjeta'), telefono: opv('confirmar'), notas: opv('telefonoCliente') ? `WhatsApp del cliente: ${opv('telefonoCliente')}` : '' });
+    msgEn('msgOp', '✅ Enviado al grupo y registrado como envío pendiente', true);
+  } catch (e) { msgEn('msgOp', `Enviado al grupo, pero NO se registró en el ERP: ${e.message}`, false); }
+};
+
+// ---- Leer el número de la tarjeta desde la foto (Tesseract.js, todo en el navegador) ----
+let tesseractCargado;
+function cargarTesseract() {
+  if (window.Tesseract) return Promise.resolve(window.Tesseract);
+  return tesseractCargado ||= new Promise((ok, mal) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
+    s.onload = () => ok(window.Tesseract);
+    s.onerror = () => { tesseractCargado = null; mal(new Error('No se pudo cargar el lector de fotos (¿hay internet?). Escribe el número a mano.')); };
+    document.head.appendChild(s);
+  });
+}
+
+// Gris con contraste estirado; invertida sirve para tarjetas con números claros sobre fondo oscuro.
+function prepararFoto(img, invertir) {
+  const escala = Math.min(2, 1800 / img.width);
+  const w = Math.round(img.width * escala), h = Math.round(img.height * escala);
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const x = c.getContext('2d'); x.drawImage(img, 0, 0, w, h);
+  const d = x.getImageData(0, 0, w, h), p = d.data, g = new Float32Array(w * h);
+  let min = 255, max = 0;
+  for (let i = 0, j = 0; i < p.length; i += 4, j++) { const v = 0.299 * p[i] + 0.587 * p[i + 1] + 0.114 * p[i + 2]; g[j] = v; if (v < min) min = v; if (v > max) max = v; }
+  const rango = Math.max(max - min, 1);
+  for (let i = 0, j = 0; i < p.length; i += 4, j++) { let v = (g[j] - min) * 255 / rango; if (invertir) v = 255 - v; p[i] = p[i + 1] = p[i + 2] = v; }
+  x.putImageData(d, 0, 0);
+  return c;
+}
+
+function numeroDeTarjeta(texto) {
+  const m = texto.match(/\d{4}[ \-]*\d{4}[ \-]*\d{4}[ \-]*\d{4}/) || texto.replace(/\D/g, '').match(/\d{16}/);
+  return m ? m[0].replace(/\D/g, '').replace(/(\d{4})(?=\d)/g, '$1 ') : '';
+}
+
+async function leerTarjeta(archivo) {
+  if (!archivo || !archivo.type.startsWith('image/')) return;
+  const url = URL.createObjectURL(archivo);
+  $('opFoto').src = url; $('opFoto').hidden = false;
+  const estado = (t) => { $('opLeer').textContent = t; };
+  let worker;
+  try {
+    estado('Cargando el lector de fotos…');
+    const T = await cargarTesseract();
+    const img = await new Promise((ok, mal) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => mal(new Error('No se pudo abrir la imagen')); i.src = url; });
+    worker = await T.createWorker('eng');
+    await worker.setParameters({ tessedit_char_whitelist: '0123456789 -', tessedit_pageseg_mode: T.PSM.SPARSE_TEXT });
+    let tarjeta = '';
+    for (const [n, invertir] of [[1, false], [2, true]]) {
+      estado(`Leyendo la tarjeta… (intento ${n} de 2)`);
+      const { data } = await worker.recognize(prepararFoto(img, invertir));
+      tarjeta = numeroDeTarjeta(data.text);
+      if (tarjeta) break;
+    }
+    if (!tarjeta) return estado('No pude leer los 16 dígitos. Prueba con una foto más cerca y sin reflejos, o escríbelos a mano.');
+    fOp.elements.tarjeta.value = tarjeta;
+    estado('✅ Número leído: compáralo con la foto antes de enviar (a veces se confunde un dígito).');
+    opEnviado = false; generarOp();
+  } catch (e) { estado(e.message); }
+  finally { if (worker) worker.terminate(); URL.revokeObjectURL(url); }
+}
+$('opArchivo').addEventListener('change', () => leerTarjeta($('opArchivo').files[0]));
+document.addEventListener('paste', (ev) => {
+  if (document.querySelector('[data-tab="operaciones"]').hidden) return;
+  const f = [...(ev.clipboardData?.files || [])].find((x) => x.type.startsWith('image/'));
+  if (f) { ev.preventDefault(); leerTarjeta(f); }
+});
 
 // ---- ENVÍOS ----
 let tasaManual = false, tSim;

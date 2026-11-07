@@ -1,7 +1,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const { DEFAULT_SUPUESTOS, DEFAULT_TARIFA, DEFAULT_ENLACE, calcular, turnoActual, armarMensaje, armarPlantillaDatos } = require('./src/calc');
+const { DEFAULT_SUPUESTOS, DEFAULT_TARIFA, DEFAULT_ENLACE, calcular, turnoActual, armarMensaje, armarPlantillaDatos, armarOperacion } = require('./src/calc');
 const { obtenerUsdBrl } = require('./src/rates');
 const { obtenerMercado } = require('./src/mercado');
 const wa = require('./src/whatsapp');
@@ -46,10 +46,10 @@ const entraPorHttps = (req) => req.headers['x-forwarded-proto'] === 'https';
 function leerConfig() {
   try {
     const c = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
-    return { destinoId: c.destinoId || '', supuestos: { ...DEFAULT_SUPUESTOS, ...c.supuestos }, tarifa: { ...DEFAULT_TARIFA, ...c.tarifa }, enlace: c.enlace || DEFAULT_ENLACE,
+    return { destinoId: c.destinoId || '', destinoOpsId: c.destinoOpsId || '', supuestos: { ...DEFAULT_SUPUESTOS, ...c.supuestos }, tarifa: { ...DEFAULT_TARIFA, ...c.tarifa }, enlace: c.enlace || DEFAULT_ENLACE,
       contacto: c.contacto || '', pix: c.pix || '', alertaUsdt: Number.isFinite(c.alertaUsdt) ? c.alertaUsdt : ALERTA_USDT };
   } catch {
-    return { destinoId: '', supuestos: { ...DEFAULT_SUPUESTOS }, tarifa: { ...DEFAULT_TARIFA }, enlace: DEFAULT_ENLACE, contacto: '', pix: '', alertaUsdt: ALERTA_USDT };
+    return { destinoId: '', destinoOpsId: '', supuestos: { ...DEFAULT_SUPUESTOS }, tarifa: { ...DEFAULT_TARIFA }, enlace: DEFAULT_ENLACE, contacto: '', pix: '', alertaUsdt: ALERTA_USDT };
   }
 }
 
@@ -149,6 +149,24 @@ const rutas = {
     return { texto: armarPlantillaDatos({ montoBrl, tasa, pix }), tasa, cup: montoBrl * tasa };
   },
 
+  // Mensaje de una operación para el grupo de operaciones (vista previa).
+  'POST /api/operacion/mensaje': async (body) => {
+    const { tarifa } = leerConfig();
+    const montoBrl = Number(body.montoBrl);
+    if (montoBrl > 0 && montoBrl < tarifa.montoMinimoBrl) throw new Error(`El envío mínimo es de ${tarifa.montoMinimoBrl} BRL`);
+    return { texto: armarOperacion({ ...body, montoBrl, tasa: Number(body.tasa) }) };
+  },
+
+  // Manda la operación al grupo OPERACIONES - REMESAS (el que se elige en la pestaña Operaciones).
+  'POST /api/operacion/enviar': async (body) => {
+    const { destinoOpsId } = leerConfig();
+    const texto = String(body.mensaje || '').trim();
+    if (!destinoOpsId) throw new Error('Elige primero el grupo de operaciones');
+    if (!texto) throw new Error('El mensaje está vacío');
+    await wa.enviar(destinoOpsId, texto);
+    return { ok: true };
+  },
+
   'GET /api/usdbrl': async () => obtenerUsdBrl(),
 
   'GET /api/mercado': async () => obtenerMercado(),
@@ -169,6 +187,7 @@ const rutas = {
     const actual = leerConfig();
     const nuevo = {
       destinoId: typeof body.destinoId === 'string' ? body.destinoId : actual.destinoId,
+      destinoOpsId: typeof body.destinoOpsId === 'string' ? body.destinoOpsId : actual.destinoOpsId,
       supuestos: body.supuestos ? validarSupuestos(body.supuestos) : actual.supuestos,
       tarifa: body.tarifa ? validarTarifa(body.tarifa) : actual.tarifa,
       enlace: actual.enlace,
