@@ -63,7 +63,7 @@ test('el panel guarda, lee y calcula igual que con el archivo local', async () =
   const almacen = crearAlmacen(DIR);
   assert.strictEqual(almacen.modo(), 'supabase');
   await almacen.guardar('lotes', { fecha: '2026-11-01', codigo: 'L2', usdt: 178, brl: 986, cupPorUsdt: 1130 });
-  await almacen.guardar('envios', { fecha: '2026-11-03', cliente: '2', montoBrl: 300, tasa: 194.5, estado: 'Entregado' });
+  await almacen.guardar('envios', { fecha: '2026-11-03', cliente: 'Beto', montoBrl: 300, tasa: 194.5, estado: 'Entregado' });
   assert.strictEqual(tablas.lotes.length, 1);
   assert.strictEqual(tablas.envios[0].monto_brl, 300);
   const c = erp.calcularLibro(await almacen.leer(), S);

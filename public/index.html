@@ -1375,7 +1375,7 @@ function pintarClientes() {
     lista.map((c) => `<tr><td><button class="mini sec" data-cliente="${esc(c.nombre)}">${esc(c.nombre)}</button></td><td class="n">${c.envios}</td>` +
       `<td class="n">${brl(c.brl)}</td><td class="n">${num(c.cup, 0)}</td><td class="n ${signo(c.ganancia)}">${brl(c.ganancia)}</td>` +
       `<td>${fechaCorta(c.primera)}</td><td>${fechaCorta(c.ultima)}</td><td>${esc(c.tarjeta)}</td><td>${esc(c.telefono)}</td></tr>`));
-  $('listaClientes').innerHTML = libro.calculo.clientes.map((c) => `<option value="${esc(c.nombre)}">`).join('');
+  $('listaClientes').innerHTML = libro.calculo.clientes.map((c) => `<option value="${esc(c.nombre)}" label="${esc(c.telefono || c.tarjeta || '')}">`).join('');
 }
 $('cBuscar').addEventListener('input', pintarClientes);
 $('tClientes').addEventListener('click', (ev) => {

@@ -97,6 +97,9 @@ function validar(coleccion, item, datos) {
     if (datos?.lotes.some((l) => l.codigo === out.codigo && l.id !== out.id)) throw new Error(`Ya existe el lote ${out.codigo}`);
     if (out.usadosPrevios > out.usdt) throw new Error('Los USDT usados no pueden ser más que los comprados');
   }
+  if (coleccion === 'envios' && !/\p{L}/u.test(out.cliente)) {
+    throw new Error('Escribe el nombre del cliente (no solo un número)');
+  }
   if (coleccion === 'envios' && out.lote) {
     out.lote = out.lote.toUpperCase();
     if (datos && !datos.lotes.some((l) => l.codigo === out.lote)) throw new Error(`No existe el lote ${out.lote}`);

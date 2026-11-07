@@ -15,8 +15,8 @@ function datosExcel() {
   erp.guardarItem(d, 'lotes', { fecha: '2026-11-01', codigo: 'L2', usdt: 178, brl: 986, cupPorUsdt: 1130 });
   erp.guardarItem(d, 'lotes', { fecha: '2026-11-05', codigo: 'L3', usdt: 100, brl: 555.393, cupPorUsdt: 1130 });
   for (const [fecha, cliente, montoBrl, tasa, cupEntregados] of [
-    ['2026-11-02', '1', 55, 188.5, 10367.5], ['2026-11-03', '2', 300, 194.5, 58350],
-    ['2026-11-04', '3', 120, 190, 22800], ['2026-11-04', '4', 100, 190, 19000]]) {
+    ['2026-11-02', 'Ana', 55, 188.5, 10367.5], ['2026-11-03', 'Beto', 300, 194.5, 58350],
+    ['2026-11-04', 'Carla', 120, 190, 22800], ['2026-11-04', 'Dani', 100, 190, 19000]]) {
     erp.guardarItem(d, 'envios', { fecha, cliente, montoBrl, tasa, cupEntregados, estado: 'Entregado' });
   }
   return d;
