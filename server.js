@@ -1,7 +1,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const { DEFAULT_SUPUESTOS, DEFAULT_TARIFA, DEFAULT_ENLACE, calcular, turnoActual, armarMensaje } = require('./src/calc');
+const { DEFAULT_SUPUESTOS, DEFAULT_TARIFA, DEFAULT_ENLACE, calcular, turnoActual, armarMensaje, armarPlantillaDatos } = require('./src/calc');
 const { obtenerUsdBrl } = require('./src/rates');
 const { obtenerMercado } = require('./src/mercado');
 const wa = require('./src/whatsapp');
@@ -47,9 +47,9 @@ function leerConfig() {
   try {
     const c = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
     return { destinoId: c.destinoId || '', supuestos: { ...DEFAULT_SUPUESTOS, ...c.supuestos }, tarifa: { ...DEFAULT_TARIFA, ...c.tarifa }, enlace: c.enlace || DEFAULT_ENLACE,
-      contacto: c.contacto || '', alertaUsdt: Number.isFinite(c.alertaUsdt) ? c.alertaUsdt : ALERTA_USDT };
+      contacto: c.contacto || '', pix: c.pix || '', alertaUsdt: Number.isFinite(c.alertaUsdt) ? c.alertaUsdt : ALERTA_USDT };
   } catch {
-    return { destinoId: '', supuestos: { ...DEFAULT_SUPUESTOS }, tarifa: { ...DEFAULT_TARIFA }, enlace: DEFAULT_ENLACE, contacto: '', alertaUsdt: ALERTA_USDT };
+    return { destinoId: '', supuestos: { ...DEFAULT_SUPUESTOS }, tarifa: { ...DEFAULT_TARIFA }, enlace: DEFAULT_ENLACE, contacto: '', pix: '', alertaUsdt: ALERTA_USDT };
   }
 }
 
@@ -63,14 +63,16 @@ async function respuestaErp() {
   return { datos, calculo: await estadoErp(datos), db: supabase.estado() };
 }
 
+// Las tasas registradas a mano pueden no traer la pequeña: se deduce con el tramo configurado.
+const pequenaDe = (t, tarifa) => (Number.isFinite(t.tasaPequena) ? t.tasaPequena
+  : Math.max(Math.floor((t.tasaCup - (tarifa.restaCup || 0)) * 2) / 2, 0));
+
 // Solo la tasa más reciente pasa a ser la vigente: corregir una tasa vieja no cambia lo que se publica.
 async function avisarTasaVigente(item) {
   const { tarifa, enlace } = leerConfig();
   const ultima = (await estadoErp()).tasas[0];
   if (!ultima || ultima.id !== item.id) return { ok: false, motivo: 'no es la tasa más reciente' };
-  const tasaPequena = Number.isFinite(item.tasaPequena) ? item.tasaPequena
-    : Math.max(Math.floor((item.tasaCup - (tarifa.restaCup || 0)) * 2) / 2, 0);
-  const r = await n8n.publicarTasa({ ...item, tasaPequena }, { tarifa, enlace });
+  const r = await n8n.publicarTasa({ ...item, tasaPequena: pequenaDe(item, tarifa) }, { tarifa, enlace });
   if (!r.ok) console.error('n8n no recibió la tasa vigente:', r.motivo);
   return r;
 }
@@ -137,6 +139,16 @@ const rutas = {
     return { ok: true, tasaCup: ultima.tasaCup };
   },
 
+  // Plantilla para pedir los datos de la remesa; el monto es opcional y usa la tasa vigente según el tramo.
+  'POST /api/plantilla-datos': async (body) => {
+    const { tarifa, pix } = leerConfig();
+    const montoBrl = Number(body.montoBrl) || 0;
+    const ultima = (await estadoErp()).tasas[0];
+    const tasa = !ultima ? 0 : montoBrl > 0 && montoBrl < tarifa.umbralBrl ? pequenaDe(ultima, tarifa) : ultima.tasaCup;
+    if (montoBrl > 0 && montoBrl < tarifa.montoMinimoBrl) throw new Error(`El envío mínimo es de ${tarifa.montoMinimoBrl} BRL`);
+    return { texto: armarPlantillaDatos({ montoBrl, tasa, pix }), tasa, cup: montoBrl * tasa };
+  },
+
   'GET /api/usdbrl': async () => obtenerUsdBrl(),
 
   'GET /api/mercado': async () => obtenerMercado(),
@@ -161,12 +173,18 @@ const rutas = {
       tarifa: body.tarifa ? validarTarifa(body.tarifa) : actual.tarifa,
       enlace: actual.enlace,
       contacto: actual.contacto,
+      pix: actual.pix,
       alertaUsdt: actual.alertaUsdt,
     };
     if (body.alertaUsdt !== undefined) {
       const a = Number(body.alertaUsdt);
       if (!Number.isFinite(a) || a < 0 || a > 1e7) throw new Error('La alerta de USDT debe ser un número válido (0 o mayor)');
       nuevo.alertaUsdt = a;
+    }
+    if (typeof body.pix === 'string') {
+      const p = body.pix.trim();
+      if (p.length > 300) throw new Error('Los datos del PIX son muy largos (máximo 300 caracteres)');
+      nuevo.pix = p;
     }
     if (typeof body.contacto === 'string') {
       const n = body.contacto.replace(/\D/g, '');

@@ -60,4 +60,29 @@ function armarMensaje({ tasaCup, tasaPequena }, { turno, fecha = new Date(), tar
   ].join('\n');
 }
 
-module.exports = { DEFAULT_SUPUESTOS, DEFAULT_TARIFA, DEFAULT_ENLACE, calcular, turnoActual, armarMensaje, enlaceContacto };
+const numBr = (n, dec) => new Intl.NumberFormat('pt-BR', { minimumFractionDigits: dec, maximumFractionDigits: dec }).format(n);
+
+// Mensaje para pedirle al cliente lo necesario para la remesa; con monto, dice también cuántos CUP llegan.
+function armarPlantillaDatos({ montoBrl, tasa, pix = '' } = {}) {
+  const cup = montoBrl * tasa;
+  const cotizacion = montoBrl > 0 && tasa > 0
+    ? ['', `Envías: *R$ ${numBr(montoBrl, 2)}*`, `Tu familia recibe: *${numBr(cup, Number.isInteger(cup) ? 0 : 1)} CUP* (1 BRL = ${fmt(tasa, 1)} CUP)`]
+    : [];
+  return [
+    '✅ *Datos para tu envío*',
+    ...cotizacion,
+    '',
+    'Para hacerlo, mándame por aquí:',
+    '1️⃣ Nombre y apellidos completos del titular de la tarjeta en Cuba',
+    '2️⃣ Número de la tarjeta en CUP (16 dígitos)',
+    '3️⃣ Teléfono en Cuba para confirmar la entrega',
+    '4️⃣ Comprobante del PIX',
+    ...(pix ? ['', '💳 *Pago por PIX*', pix] : []),
+    '',
+    '⚠️ Revisa bien el número de la tarjeta: con un dígito equivocado el dinero llega a otra persona.',
+    '',
+    'En cuanto tenga todo, hago el envío y te confirmo por aquí ✅',
+  ].join('\n');
+}
+
+module.exports = { DEFAULT_SUPUESTOS, DEFAULT_TARIFA, DEFAULT_ENLACE, calcular, turnoActual, armarMensaje, enlaceContacto, armarPlantillaDatos };

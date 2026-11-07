@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { calcular, armarMensaje, turnoActual } = require('../src/calc');
+const { calcular, armarMensaje, turnoActual, armarPlantillaDatos } = require('../src/calc');
 
 // Valores de ejemplo del Excel: USD/BRL 5,5 y CUP/USD 450 con los supuestos por defecto.
 test('coincide con la hoja Calculadora del Excel', () => {
@@ -40,6 +40,20 @@ test('con número de contacto, el mensaje lleva el enlace que abre el chat', () 
   assert.match(m, /Toca aquí para hacer tu envío:\*\nhttps:\/\/wa\.me\/5511999998888\?text=Hola%2C%20quiero%20hacer%20un%20env%C3%ADo%20a%20Cuba\n/);
   assert.doesNotMatch(m, /Escríbenos/);
   assert.match(m, /chat\.whatsapp\.com\/\w+$/);
+});
+
+test('plantilla de datos: pide los 4 datos y, con monto, cotiza en CUP', () => {
+  const base = armarPlantillaDatos({});
+  for (const dato of ['Nombre y apellidos completos del titular', 'Número de la tarjeta', 'Teléfono en Cuba', 'Comprobante del PIX']) {
+    assert.match(base, new RegExp(dato));
+  }
+  assert.doesNotMatch(base, /Envías|Pago por PIX/);
+
+  const c = armarPlantillaDatos({ montoBrl: 100, tasa: 184.5, pix: 'Chave PIX: abc' });
+  assert.match(c, /Envías: \*R\$ 100,00\*/);
+  assert.match(c, /Tu familia recibe: \*18\.450 CUP\* \(1 BRL = 184,5 CUP\)/);
+  assert.match(c, /Pago por PIX\*\nChave PIX: abc/);
+  assert.match(armarPlantillaDatos({ montoBrl: 55, tasa: 179.5 }), /9\.872,5 CUP/);
 });
 
 test('turno según la hora', () => {

@@ -380,6 +380,19 @@
       <!-- ================= ENVÍOS ================= -->
       <div data-tab="envios" class="pagina">
         <section>
+          <div class="cab"><div><h2>Pedir los datos al cliente</h2><p>Plantilla para copiar en WhatsApp. Con el monto, dice cuántos CUP recibe la familia con la tasa vigente.</p></div></div>
+          <div class="fila">
+            <div><label for="pMonto">Monto a enviar (BRL, opcional)</label><input id="pMonto" type="number" step="0.01" min="0" inputmode="decimal"></div>
+          </div>
+          <textarea id="pTexto" style="margin-top:12px;min-height:300px"></textarea>
+          <div class="acciones">
+            <button id="btnPCopiar">Copiar plantilla</button>
+            <button class="sec" id="btnPEnvio" type="button">Pasar el monto a «Nuevo envío»</button>
+            <span id="msgP"></span>
+          </div>
+          <p class="nota">Puedes retocar el texto antes de copiarlo. Los datos del PIX se ponen en Ajustes → Mensaje y alertas.</p>
+        </section>
+        <section>
           <div class="cab"><div><h2 id="hEnvio">Nuevo envío</h2><p>La tasa se llena sola con la vigente según el monto</p></div></div>
           <form id="fEnvio" class="fila">
             <input type="hidden" name="id">
@@ -521,6 +534,10 @@
               <label for="contacto">WhatsApp para «Toca aquí para hacer tu envío» (con 55)</label>
               <input id="contacto" type="tel" inputmode="numeric" placeholder="5548999998888">
               <p class="nota" style="margin-top:6px">Va como enlace en la tasa de «publicar ahora»: abre el chat con «Hola, quiero hacer un envío a Cuba» ya escrito. Vacío = sin enlace. Los turnos automáticos usan el número puesto en n8n.</p>
+            </div>
+            <div style="margin-top:12px">
+              <label for="pix">Datos para el PIX (van en la plantilla de datos)</label>
+              <textarea id="pix" maxlength="300" style="min-height:80px;font-family:inherit" placeholder="Chave PIX: …&#10;Titular: …"></textarea>
             </div>
             <div style="margin-top:12px"><label for="alertaUsdt">Avisarme cuando queden menos de (USDT)</label><input id="alertaUsdt" type="number" step="1" min="0"></div>
           </section>
@@ -693,7 +710,7 @@ async function refrescarEstado(inicial) {
     });
     actualizarBoton();
     if (inicial) {
-      dibujarSupuestos(config.supuestos); dibujarTarifa(config.tarifa); $('enlace').value = config.enlace; $('contacto').value = config.contacto || ''; window.destinoGuardado = config.destinoId;
+      dibujarSupuestos(config.supuestos); dibujarTarifa(config.tarifa); $('enlace').value = config.enlace; $('contacto').value = config.contacto || ''; $('pix').value = config.pix || ''; window.destinoGuardado = config.destinoId;
       configActual = config; $('alertaUsdt').value = config.alertaUsdt;
       const c = w.conf || {};
       $('evoUrl').value = c.url || ''; if (c.instance) $('evoInst').value = c.instance;
@@ -916,8 +933,9 @@ $('btnGuardar').onclick = async () => {
   const t = {};
   document.querySelectorAll('#tarifa input').forEach((i) => { t[i.dataset.t] = parseFloat(i.value); });
   try {
-    const nuevo = await api('/api/config', { supuestos: s, tarifa: t, enlace: $('enlace').value, contacto: $('contacto').value, alertaUsdt: parseFloat($('alertaUsdt').value) });
+    const nuevo = await api('/api/config', { supuestos: s, tarifa: t, enlace: $('enlace').value, contacto: $('contacto').value, pix: $('pix').value, alertaUsdt: parseFloat($('alertaUsdt').value) });
     $('contacto').value = nuevo.contacto || '';
+    cargarPlantilla();
     supuestosGuardados = nuevo.supuestos;
     configActual = { ...configActual, ...nuevo };
     cargarErp();
@@ -1222,6 +1240,31 @@ function pintarTasas() {
       `<td>${acc('tasas', t.id, 'editar', 'borrar')}</td></tr>`));
 }
 
+// ---- PLANTILLA DE DATOS ----
+let tPlantilla;
+async function cargarPlantilla() {
+  try {
+    const r = await api('/api/plantilla-datos', { montoBrl: parseFloat($('pMonto').value) || 0 });
+    $('pTexto').value = r.texto;
+    msgEn('msgP', '', true);
+  } catch (e) { msgEn('msgP', e.message, false); }
+}
+$('pMonto').addEventListener('input', () => { clearTimeout(tPlantilla); tPlantilla = setTimeout(cargarPlantilla, 300); });
+$('btnPCopiar').onclick = async () => {
+  try { await navigator.clipboard.writeText($('pTexto').value); toast('Plantilla copiada: pégala en el chat del cliente'); }
+  catch { $('pTexto').select(); document.execCommand('copy'); toast('Plantilla copiada'); }
+};
+$('btnPEnvio').onclick = () => {
+  const monto = parseFloat($('pMonto').value);
+  if (!(monto > 0)) return msgEn('msgP', 'Escribe primero el monto', false);
+  formEnvio.limpiar();
+  fEnvio.elements.montoBrl.value = monto;
+  fEnvio.elements.tasa.value = tasaPorDefecto(monto);
+  simularEnvio();
+  fEnvio.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  fEnvio.elements.cliente.focus();
+};
+
 // ---- ENVÍOS ----
 let tasaManual = false, tSim;
 const fEnvio = $('fEnvio');
@@ -1423,7 +1466,7 @@ formTasa.limpiar(); formEnvio.limpiar(); formGasto.limpiar();
 irA(location.hash.slice(1) || 'inicio');
 turnoAuto();
 refrescarEstado(true).then((e) => setTimeout(cicloWa, e === 'listo' ? 30_000 : 4_000));
-cargarErp().then(() => { formLote.limpiar(); cargarAutomatico(); });
+cargarErp().then(() => { formLote.limpiar(); cargarAutomatico(); cargarPlantilla(); });
 setInterval(cargarAutomatico, 60_000);
 cargarMercado();
 setInterval(cargarMercado, 5 * 60_000);
