@@ -31,6 +31,14 @@ La URL y la apikey se guardan en `%LOCALAPPDATA%\FlujoBot\evolution.json` (fuera
 - Con Supabase conectado, el panel guarda una copia diaria en `erp-respaldos/supabase-AAAA-MM-DD.json` (el plan gratuito no tiene respaldos).
 - «Subir datos del archivo local» copia `erp.json` a Supabase (actualiza por id, no borra nada).
 
+## Envío automático de la tasa (n8n)
+- Al guardar una tasa en «Tasas publicadas» (la más reciente del libro), el panel se la manda al flujo de n8n
+  «Flujo Cuba · Tasa del día automática», que la publica en el grupo a las 7:00, 13:00 y 19:00 (hora de Brasil).
+  Si el dólar se mueve más de 3 % respecto al USD/BRL guardado con la tasa, el flujo se pausa y avisa por WhatsApp.
+- En el VPS/Docker: variables de entorno `N8N_TASA_URL` (`https://TU-N8N/webhook/flujo-tasa`) y `N8N_TASA_TOKEN`
+  (el mismo valor que `TOKEN` en el nodo «Guardar tasa vigente» de n8n). En local se guardan en `%LOCALAPPDATA%\FlujoBot\n8n.json`.
+- Si n8n no responde, el panel sigue funcionando y lo deja en el log del servidor.
+
 ## Notas
 - Solo se envía al pulsar «Enviar» y confirmar. Nada es automático.
 - USD/BRL de referencia: AwesomeAPI (dólar comercial), con Binance USDT/BRL público como respaldo. Ajústalo a tu cotización real.

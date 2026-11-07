@@ -5,6 +5,7 @@ const { DEFAULT_SUPUESTOS, DEFAULT_TARIFA, DEFAULT_ENLACE, calcular, turnoActual
 const { obtenerUsdBrl } = require('./src/rates');
 const { obtenerMercado } = require('./src/mercado');
 const wa = require('./src/whatsapp');
+const n8n = require('./src/n8n');
 const erp = require('./src/erp');
 const { crearAlmacen } = require('./src/libro');
 const supabase = require('./src/supabase');
@@ -58,6 +59,18 @@ async function estadoErp(datos) {
 async function respuestaErp() {
   const datos = await almacen.leer();
   return { datos, calculo: await estadoErp(datos), db: supabase.estado() };
+}
+
+// Solo la tasa más reciente pasa a ser la vigente: corregir una tasa vieja no cambia lo que se publica.
+async function avisarTasaVigente(item) {
+  const { tarifa, enlace } = leerConfig();
+  const ultima = (await estadoErp()).tasas[0];
+  if (!ultima || ultima.id !== item.id) return { ok: false, motivo: 'no es la tasa más reciente' };
+  const tasaPequena = Number.isFinite(item.tasaPequena) ? item.tasaPequena
+    : Math.max(Math.floor((item.tasaCup - (tarifa.restaCup || 0)) * 2) / 2, 0);
+  const r = await n8n.publicarTasa({ ...item, tasaPequena }, { tarifa, enlace });
+  if (!r.ok) console.error('n8n no recibió la tasa vigente:', r.motivo);
+  return r;
 }
 
 function guardarConfig(c) {
@@ -163,7 +176,8 @@ const rutas = {
 
   'POST /api/erp/guardar': async (body) => {
     const item = await almacen.guardar(body.coleccion, body.item || {});
-    return { item, ...(await respuestaErp()) };
+    const n8nTasa = body.coleccion === 'tasas' ? await avisarTasaVigente(item) : undefined;
+    return { item, n8nTasa, ...(await respuestaErp()) };
   },
 
   'POST /api/erp/borrar': async (body) => {
