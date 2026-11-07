@@ -126,6 +126,17 @@ const rutas = {
     return { ok: true };
   },
 
+  // Envío automático de 3 turnos: qué tasa tiene el bot en n8n y cómo fue el último aviso.
+  'GET /api/automatico': async () => ({ ...n8n.estado(), bot: await n8n.consultarBot() }),
+
+  'POST /api/automatico/reenviar': async () => {
+    const ultima = (await estadoErp()).tasas[0];
+    if (!ultima) throw new Error('Todavía no hay ninguna tasa registrada');
+    const r = await avisarTasaVigente(ultima);
+    if (!r.ok) throw new Error(r.motivo === 'sin configurar' ? 'El envío automático no está configurado en este servidor' : `El bot no recibió la tasa: ${r.motivo}`);
+    return { ok: true, tasaCup: ultima.tasaCup };
+  },
+
   'GET /api/usdbrl': async () => obtenerUsdBrl(),
 
   'GET /api/mercado': async () => obtenerMercado(),

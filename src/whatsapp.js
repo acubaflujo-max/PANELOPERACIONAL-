@@ -66,9 +66,9 @@ const qrSrc = (b64) => (b64 ? (b64.startsWith('data:') ? b64 : `data:image/png;b
 async function obtenerEstado() {
   const c = leerConf();
   if (!c.url || !c.apikey || !c.instance) {
-    return { estado: 'sin_configurar', qr: null, error: null, conf: { url: c.url, instance: c.instance, tieneKey: !!c.apikey } };
+    return { estado: 'sin_configurar', qr: null, error: null, conf: { url: c.url, instance: c.instance, tieneKey: !!c.apikey, desdeEntorno: DESDE_ENTORNO } };
   }
-  const conf = { url: c.url, instance: c.instance, tieneKey: true };
+  const conf = { url: c.url, instance: c.instance, tieneKey: true, desdeEntorno: DESDE_ENTORNO };
   try {
     let state;
     try {

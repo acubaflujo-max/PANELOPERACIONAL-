@@ -3,416 +3,612 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
 <title>Flujo Cuba · Panel</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230E3A8C'/%3E%3Cpath d='M11 8h12v4h-8v4h6v4h-6v4h-4z' fill='white'/%3E%3Crect x='6' y='27' width='20' height='2' rx='1' fill='%23E8283A'/%3E%3C/svg%3E">
 <style>
   :root {
-    --azul: #0E3A8C; --azul-osc: #061B4A; --rojo: #E8283A;
-    --bg: #f3f5fa; --card: #fff; --txt: #14203a; --suave: #5b6783; --borde: #d9deea;
-    --ok: #1a8a4a;
+    --marca: #0E3A8C; --marca-osc: #061B4A; --acento: #E8283A;
+    --bg: #f4f6fb; --card: #fff; --txt: #111a33; --suave: #5b6783; --tenue: #8a94ad;
+    --borde: #e3e7f0; --borde-f: #cfd6e6; --marca-suave: #e9effc; --link: #0E3A8C;
+    --ok: #16834a; --ok-bg: #e7f6ee; --av: #a45a05; --av-bg: #fff3df; --err: #c81e30; --err-bg: #fdeaec;
+    --sombra: 0 1px 2px rgba(16, 24, 40, .04), 0 1px 3px rgba(16, 24, 40, .06);
   }
   @media (prefers-color-scheme: dark) {
-    :root { --bg: #0b1226; --card: #131c36; --txt: #e8ecf7; --suave: #93a0c0; --borde: #26325a; }
+    :root {
+      --bg: #0a1022; --card: #111a31; --txt: #e7ebf6; --suave: #9aa6c3; --tenue: #6f7a98;
+      --borde: #1f2a48; --borde-f: #2c3962; --marca-suave: #17244d; --link: #8fb0ff;
+      --ok: #4ccb84; --ok-bg: #0f2e20; --av: #f2b45a; --av-bg: #33240a; --err: #ff6b7a; --err-bg: #3a1219;
+      --sombra: none;
+    }
   }
   * { box-sizing: border-box; }
   [hidden] { display: none !important; }
-  body { margin: 0; font: 15px/1.45 system-ui, sans-serif; background: var(--bg); color: var(--txt); }
-  header { background: linear-gradient(135deg, var(--azul), var(--azul-osc)); color: #fff; padding: 18px 16px; border-bottom: 4px solid var(--rojo); }
-  header { position: relative; }
-  #salir { position: absolute; top: 18px; right: 16px; color: #fff; opacity: .8; font-size: 13px; text-decoration: none; }
-  header h1 { margin: 0; font-size: 20px; }
-  header p { margin: 2px 0 0; opacity: .8; font-size: 13px; }
-  main { max-width: 760px; margin: 0 auto; padding: 16px; display: grid; gap: 14px; }
-  section { background: var(--card); border: 1px solid var(--borde); border-radius: 12px; padding: 16px; }
-  h2 { margin: 0 0 12px; font-size: 15px; color: var(--azul); }
-  @media (prefers-color-scheme: dark) { h2 { color: #8fb0ff; } }
-  .fila { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
-  label { display: block; font-size: 12px; color: var(--suave); margin-bottom: 4px; }
-  input, select, textarea { width: 100%; padding: 9px 10px; font: inherit; color: var(--txt); background: var(--bg); border: 1px solid var(--borde); border-radius: 8px; }
-  textarea { min-height: 220px; resize: vertical; font-family: ui-monospace, Consolas, monospace; font-size: 14px; }
-  button { font: inherit; font-weight: 600; padding: 9px 14px; border: 0; border-radius: 8px; cursor: pointer; background: var(--azul); color: #fff; }
-  button.sec { background: transparent; color: var(--azul); border: 1px solid var(--borde); }
-  @media (prefers-color-scheme: dark) { button.sec { color: #8fb0ff; } }
-  button.enviar { background: var(--rojo); }
-  button:disabled { opacity: .45; cursor: not-allowed; }
-  .acciones { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; align-items: center; }
-  .res { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-top: 14px; }
-  @media (max-width: 480px) { .kpi b { font-size: 18px; } }
-  .kpi { background: var(--bg); border-radius: 8px; padding: 10px 12px; }
-  .kpi b { display: block; font-size: 22px; }
-  .kpi span { font-size: 12px; color: var(--suave); }
-  .estado { font-size: 13px; padding: 8px 12px; border-radius: 8px; background: var(--bg); }
-  .estado.listo { color: var(--ok); }
-  .estado.error { color: var(--rojo); }
-  #qr { display: block; margin: 10px 0 0; border-radius: 8px; background: #fff; }
-  #msg { font-size: 13px; min-height: 1.3em; }
-  .ok { color: var(--ok); } .err { color: var(--rojo); }
-  details summary { cursor: pointer; font-weight: 600; color: var(--azul); }
-  .nota { font-size: 12px; color: var(--suave); margin: 8px 0 0; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; font: 14.5px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--txt); }
+  a { color: var(--link); }
+  svg.ic { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
-  /* ---- ERP ---- */
-  nav { background: var(--azul-osc); display: flex; gap: 2px; overflow-x: auto; padding: 0 8px; position: sticky; top: 0; z-index: 5; }
-  nav button { background: transparent; color: #c9d5f5; border-radius: 0; padding: 11px 13px; white-space: nowrap; border-bottom: 3px solid transparent; }
-  nav button.activa { color: #fff; border-bottom-color: var(--rojo); }
-  main.ancho { max-width: 1120px; }
-  main > *, .grid2 > *, section { min-width: 0; } /* las tablas anchas se desplazan dentro de su caja, no estiran la página */
-  .tabla { overflow-x: auto; margin-top: 10px; }
+  /* ---- estructura ---- */
+  .app { display: grid; grid-template-columns: 236px minmax(0, 1fr); min-height: 100vh; }
+  .lateral { position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; gap: 4px; padding: 18px 12px; color: #fff;
+    background: linear-gradient(180deg, var(--marca-osc), #0b2a6b); z-index: 10; }
+  .marca { display: flex; align-items: center; gap: 10px; padding: 0 8px 18px; }
+  .marca svg { width: 36px; height: 36px; flex: none; }
+  .marca b { display: block; font-size: 15px; line-height: 1.2; }
+  .marca span { font-size: 12px; opacity: .7; }
+  #pestanas { display: flex; flex-direction: column; gap: 2px; }
+  #pestanas button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; border: 0; border-radius: 8px;
+    background: transparent; color: #c5d1f0; font: inherit; font-weight: 500; text-align: left; cursor: pointer; }
+  #pestanas button:hover { background: rgba(255, 255, 255, .07); color: #fff; }
+  #pestanas button.activa { background: rgba(255, 255, 255, .13); color: #fff; font-weight: 600; box-shadow: inset 3px 0 0 var(--acento); }
+  .lateral-pie { margin-top: auto; padding: 12px 8px 0; border-top: 1px solid rgba(255, 255, 255, .12); font-size: 12px; color: #c5d1f0; display: grid; gap: 8px; }
+  .lateral-pie a { color: #fff; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; opacity: .85; }
+  .lateral-pie a:hover { opacity: 1; }
+  .contenido { min-width: 0; }
+  .barra { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px 20px; flex-wrap: wrap; padding: 24px 28px 4px; }
+  .barra h1 { margin: 0; font-size: 23px; letter-spacing: -.01em; }
+  .barra p { margin: 2px 0 0; color: var(--suave); font-size: 13.5px; }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip { display: inline-flex; align-items: center; gap: 7px; padding: 5px 11px; border-radius: 999px; background: var(--card); border: 1px solid var(--borde);
+    font-size: 12px; font-weight: 600; color: var(--suave); text-decoration: none; cursor: pointer; }
+  .chip i { width: 8px; height: 8px; border-radius: 50%; background: var(--tenue); }
+  .chip.ok i { background: var(--ok); } .chip.av i { background: #f59e0b; } .chip.err i { background: var(--err); }
+  main { padding: 18px 28px 48px; max-width: 1240px; }
+  .pagina { display: grid; gap: 16px; }
+  .pagina > *, .grid2 > *, .col > * { min-width: 0; }
+  .grid2 { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+  .grid-hero { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); }
+  .grid-tasa { display: grid; gap: 16px; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); align-items: start; }
+  .col { display: grid; gap: 16px; }
+
+  @media (max-width: 1100px) { .grid-tasa { grid-template-columns: 1fr; } }
+  @media (max-width: 900px) { .grid-hero { grid-template-columns: 1fr; } }
+  @media (max-width: 979px) {
+    .app { grid-template-columns: minmax(0, 1fr); }
+    .lateral { min-width: 0; height: auto; flex-direction: row; flex-wrap: wrap; align-items: center; padding: 10px 12px 0; gap: 0; }
+    .marca { padding: 0 4px 8px; }
+    .marca svg { width: 30px; height: 30px; }
+    .lateral-pie { margin: 0 0 8px auto; padding: 0; border: 0; display: flex; }
+    .lateral-pie .solo-escritorio { display: none; }
+    #pestanas { order: 3; flex-direction: row; width: calc(100% + 24px); margin: 0 -12px; padding: 0 8px; overflow-x: auto; scrollbar-width: none; }
+    #pestanas::-webkit-scrollbar { display: none; }
+    #pestanas button { width: auto; white-space: nowrap; padding: 10px 12px; border-radius: 0; }
+    #pestanas button.activa { background: transparent; box-shadow: inset 0 -3px 0 var(--acento); }
+    .barra { padding: 18px 16px 2px; }
+    main { padding: 14px 16px 40px; }
+  }
+
+  /* ---- tarjetas ---- */
+  section { background: var(--card); border: 1px solid var(--borde); border-radius: 14px; padding: 18px; box-shadow: var(--sombra); }
+  .cab { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px 16px; flex-wrap: wrap; margin-bottom: 14px; }
+  h2 { margin: 0; font-size: 15.5px; display: flex; align-items: center; gap: 8px; }
+  .cab p, .sub { margin: 3px 0 0; font-size: 13px; color: var(--suave); }
+  h3 { margin: 18px 0 10px; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--suave); }
+  .paso { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--marca-suave); color: var(--link); font-size: 12px; font-weight: 700; }
+  .nota { font-size: 12.5px; color: var(--suave); margin: 10px 0 0; }
+  .vacio { padding: 18px; text-align: center; color: var(--suave); background: var(--bg); border-radius: 10px; font-size: 13.5px; }
+  .vacio button { margin-top: 10px; }
+
+  /* ---- formularios y botones ---- */
+  .fila { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+  label { display: block; font-size: 12.5px; font-weight: 600; color: var(--suave); margin-bottom: 5px; }
+  input, select, textarea { width: 100%; padding: 9px 11px; font: inherit; color: var(--txt); background: var(--card); border: 1px solid var(--borde-f); border-radius: 8px; }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--marca); box-shadow: 0 0 0 3px rgba(14, 58, 140, .15); }
+  input:disabled, select:disabled { opacity: .6; }
+  textarea { min-height: 230px; resize: vertical; font-family: ui-monospace, Consolas, monospace; font-size: 13.5px; }
+  button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; font: inherit; font-weight: 600; padding: 9px 15px; border: 1px solid transparent;
+    border-radius: 8px; cursor: pointer; background: var(--marca); color: #fff; }
+  button:hover { filter: brightness(1.08); }
+  button.sec { background: var(--card); color: var(--txt); border-color: var(--borde-f); }
+  button.sec:hover { background: var(--bg); filter: none; }
+  button.enviar { background: var(--acento); }
+  button:disabled { opacity: .45; cursor: not-allowed; filter: none; }
+  button.mini { padding: 4px 9px; font-size: 12.5px; }
+  .acciones { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; align-items: center; }
+  .ok { color: var(--ok); } .err { color: var(--err); }
+  #msg, [id^="msg"] { font-size: 13px; }
+  details > summary { cursor: pointer; font-weight: 600; color: var(--link); list-style: none; display: flex; align-items: center; gap: 6px; }
+  details > summary::-webkit-details-marker { display: none; }
+  details > summary::before { content: '▸'; transition: transform .15s; }
+  details[open] > summary::before { transform: rotate(90deg); }
+  .linea-input { display: flex; gap: 8px; }
+  .linea-input input { flex: 1; min-width: 0; }
+
+  /* ---- indicadores ---- */
+  .res { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+  .res + .res, .res + .estado, .estado + .res { margin-top: 10px; }
+  .kpi { display: flex; flex-direction: column; background: var(--bg); border-radius: 10px; padding: 12px 14px; }
+  .kpi span { order: -1; font-size: 12px; font-weight: 600; color: var(--suave); }
+  .kpi b { font-size: 21px; letter-spacing: -.01em; font-variant-numeric: tabular-nums; margin-top: 2px; }
+  .kpi small { font-size: 11.5px; color: var(--suave); margin-top: 2px; }
+  .kpi.verde b { color: var(--ok); } .kpi.rojo b { color: var(--err); }
+  .kpi.destacado { background: var(--marca-suave); }
+  .kpi.destacado b { font-size: 26px; color: var(--link); }
+  @media (max-width: 480px) { .kpi b { font-size: 18px; } .kpi.destacado b { font-size: 22px; } }
+  .estado { font-size: 13px; padding: 10px 12px; border-radius: 10px; background: var(--bg); }
+  .estado.listo { color: var(--ok); background: var(--ok-bg); }
+  .estado.error { color: var(--err); background: var(--err-bg); }
+  .tag { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; background: var(--bg); color: var(--suave); }
+  .tag.ok { color: var(--ok); background: var(--ok-bg); } .tag.err { color: var(--err); background: var(--err-bg); } .tag.av { color: var(--av); background: var(--av-bg); }
+  .pos { color: var(--ok); } .neg { color: var(--err); }
+  .alertas { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+  .alertas li { padding: 9px 12px; border-radius: 8px; font-size: 13px; border-left: 4px solid; background: var(--bg); }
+  .alertas li.error { border-color: var(--err); } .alertas li.aviso { border-color: #f59e0b; } .alertas li.ok { border-color: var(--ok); }
+  .barra-uso { height: 6px; background: var(--borde); border-radius: 3px; min-width: 70px; }
+  .barra-uso i { display: block; height: 100%; border-radius: 3px; background: var(--marca); }
+
+  /* ---- tasa vigente y envío automático ---- */
+  .tasa-grande { font-size: 38px; font-weight: 800; letter-spacing: -.02em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .tasa-grande small { font-size: 17px; color: var(--suave); font-weight: 700; }
+  .tasa-sub { margin-top: 8px; color: var(--suave); font-size: 13.5px; }
+  .tasa-sub b { color: var(--txt); }
+  .tasa-meta { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
+  .lineas { display: grid; gap: 12px; }
+  .linea { display: grid; grid-template-columns: 10px minmax(0, 1fr); gap: 10px; align-items: start; font-size: 13.5px; }
+  .linea > i { width: 10px; height: 10px; border-radius: 50%; margin-top: 5px; background: var(--borde-f); }
+  .linea.ok > i { background: var(--ok); } .linea.av > i { background: #f59e0b; } .linea.err > i { background: var(--err); }
+  .linea b { display: block; font-weight: 600; }
+  .linea span { display: block; color: var(--suave); font-size: 12.5px; }
+  .linea button { margin-top: 8px; }
+
+  /* ---- tablas ---- */
+  .tabla { overflow-x: auto; margin-top: 12px; border: 1px solid var(--borde); border-radius: 10px; }
   table { border-collapse: collapse; width: 100%; font-size: 13px; }
-  th, td { padding: 7px 8px; border-bottom: 1px solid var(--borde); text-align: left; white-space: nowrap; }
-  th { font-size: 11px; color: var(--suave); text-transform: uppercase; letter-spacing: .03em; position: sticky; top: 0; background: var(--card); }
+  th, td { padding: 8px 10px; border-bottom: 1px solid var(--borde); text-align: left; white-space: nowrap; }
+  tbody tr:last-child td { border-bottom: 0; }
+  tbody tr:hover { background: var(--bg); }
+  th { font-size: 11px; font-weight: 700; color: var(--suave); text-transform: uppercase; letter-spacing: .04em; background: var(--bg); position: sticky; top: 0; }
   td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
   tr.cancelado td { opacity: .45; text-decoration: line-through; }
-  tfoot td { font-weight: 700; border-top: 2px solid var(--borde); }
-  .tag { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; background: var(--bg); }
-  .tag.ok { color: var(--ok); background: #1a8a4a1f; } .tag.err { color: var(--rojo); background: #e8283a1f; } .tag.av { color: #b26a00; background: #f5a6231f; }
-  .pos { color: var(--ok); } .neg { color: var(--rojo); }
-  .alertas { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
-  .alertas li { padding: 8px 12px; border-radius: 8px; font-size: 13px; border-left: 4px solid; background: var(--bg); }
-  .alertas li.error { border-color: var(--rojo); } .alertas li.aviso { border-color: #f5a623; } .alertas li.ok { border-color: var(--ok); }
-  .kpi.verde b { color: var(--ok); } .kpi.rojo b { color: var(--rojo); }
-  .kpi small { display: block; font-size: 11px; color: var(--suave); margin-top: 2px; }
-  .mini { padding: 4px 8px; font-size: 12px; }
-  .barra { height: 6px; background: var(--borde); border-radius: 3px; min-width: 70px; }
-  .barra i { display: block; height: 100%; border-radius: 3px; background: var(--azul); }
-  .previa { margin-top: 12px; }
-  .grid2 { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+  tfoot td { font-weight: 700; border-top: 2px solid var(--borde); border-bottom: 0; }
+  td .nota { margin: 0; }
   .filtros { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; }
   .filtros > div { min-width: 150px; flex: 1; }
-  a.boton { font-weight: 600; font-size: 13px; color: var(--azul); text-decoration: none; border: 1px solid var(--borde); border-radius: 8px; padding: 6px 10px; }
-  @media (prefers-color-scheme: dark) { a.boton { color: #8fb0ff; } }
-  .tasas-ancho { max-width: 760px; width: 100%; margin: 0 auto; display: grid; gap: 14px; }
+  a.boton { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; font-size: 13px; color: var(--txt); text-decoration: none;
+    border: 1px solid var(--borde-f); border-radius: 8px; padding: 7px 11px; background: var(--card); }
+  a.boton:hover { background: var(--bg); }
+  #qr { display: block; margin: 12px 0 0; border-radius: 10px; background: #fff; max-width: 260px; }
+  .guardar-barra { position: sticky; bottom: 12px; display: flex; gap: 12px; align-items: center; justify-content: flex-end; flex-wrap: wrap;
+    padding: 12px 16px; border-radius: 12px; background: var(--card); border: 1px solid var(--borde); box-shadow: 0 6px 20px rgba(16, 24, 40, .12); }
+  #toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%) translateY(20px); opacity: 0; pointer-events: none; transition: .2s;
+    max-width: min(92vw, 520px); padding: 12px 16px; border-radius: 10px; background: #111a33; color: #fff; font-size: 13.5px; box-shadow: 0 10px 30px rgba(0, 0, 0, .25); z-index: 50; }
+  #toast.ver { opacity: 1; transform: translateX(-50%); }
+  #toast.err { background: var(--err); }
 </style>
 </head>
 <body>
-<header>
-  <h1>🇧🇷 Flujo Cuba Remesas 🇨🇺</h1>
-  <p>Panel del negocio: tasas, envíos, fondo USDT, ganancias y pérdidas · <span id="modoDb"></span></p>
-  <a id="salir" href="/logout" hidden>Salir</a>
-</header>
-<script>
-  if (!['localhost', '127.0.0.1'].includes(location.hostname)) document.getElementById('salir').hidden = false;
-</script>
-<nav id="pestanas">
-  <button data-ir="inicio">📊 Inicio</button>
-  <button data-ir="tasas">💱 Tasas</button>
-  <button data-ir="envios">📦 Envíos</button>
-  <button data-ir="lotes">🪙 Lotes USDT</button>
-  <button data-ir="clientes">👥 Clientes</button>
-  <button data-ir="gastos">🧾 Gastos</button>
-  <button data-ir="reportes">📈 Reportes</button>
-</nav>
-<main class="ancho">
-  <!-- ================= INICIO ================= -->
-  <div data-tab="inicio" class="grid2" style="grid-template-columns:1fr">
-    <section>
-      <h2>Hoy y este mes</h2>
-      <div class="res" id="iKpi" style="margin-top:0"></div>
-    </section>
-    <div class="grid2">
-      <section>
-        <h2>Fondo USDT y tasa</h2>
-        <div class="res" id="iFondo" style="margin-top:0"></div>
-      </section>
-      <section>
-        <h2>Alertas</h2>
-        <ul class="alertas" id="iAlertas"></ul>
-      </section>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-inicio" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></symbol>
+  <symbol id="i-tasa" viewBox="0 0 24 24"><path d="M4 8h14l-4-4M20 16H6l4 4"/></symbol>
+  <symbol id="i-envios" viewBox="0 0 24 24"><path d="M21 3 10 14M21 3l-7 18-4-7-7-4z"/></symbol>
+  <symbol id="i-lotes" viewBox="0 0 24 24"><path d="M12 3 3 7.5 12 12l9-4.5zM3 12l9 4.5 9-4.5M3 16.5 12 21l9-4.5"/></symbol>
+  <symbol id="i-clientes" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18.5 14.5A6.5 6.5 0 0 1 21.5 20"/></symbol>
+  <symbol id="i-gastos" viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6M9 16h3"/></symbol>
+  <symbol id="i-reportes" viewBox="0 0 24 24"><path d="M3 21h18M6 17v-5M11 17V7M16 17v-8M21 17V4"/></symbol>
+  <symbol id="i-ajustes" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></symbol>
+  <symbol id="i-salir" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></symbol>
+  <symbol id="i-descarga" viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></symbol>
+</svg>
+
+<div class="app">
+  <aside class="lateral">
+    <div class="marca">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="9" fill="#fff" fill-opacity=".14"/><path d="M11 8h12v4h-8v4h6v4h-6v4h-4z" fill="#fff"/><rect x="6" y="27" width="20" height="2" rx="1" fill="#E8283A"/></svg>
+      <div><b>Flujo Cuba Remesas</b><span>Panel del negocio</span></div>
     </div>
-    <section>
-      <h2>Ganancia por día (últimos 14 días)</h2>
-      <svg id="iGrafico" viewBox="0 0 700 200" role="img" aria-label="Ganancia por día" style="width:100%;height:auto;display:block"></svg>
-    </section>
-    <section>
-      <h2>Últimos envíos</h2>
-      <div class="tabla"><table id="iUltimos"></table></div>
-      <div class="acciones"><button class="sec" data-ir="envios">Registrar un envío</button></div>
-    </section>
-    <section>
-      <h2>💾 Base de datos</h2>
-      <div id="dbEstado" class="estado">Consultando…</div>
-      <details id="dbDet" style="margin-top:12px">
-        <summary>Conexión con Supabase</summary>
-        <div class="fila" style="margin-top:12px">
-          <div><label for="dbUrl">URL del proyecto</label><input id="dbUrl" type="url" placeholder="https://xxxx.supabase.co"></div>
-          <div><label for="dbKey">Clave secreta <span id="dbKeyNota"></span></label><input id="dbKey" type="password" autocomplete="off"></div>
+    <nav id="pestanas" aria-label="Secciones">
+      <button data-ir="inicio"><svg class="ic"><use href="#i-inicio"/></svg>Inicio</button>
+      <button data-ir="tasas"><svg class="ic"><use href="#i-tasa"/></svg>Tasa del día</button>
+      <button data-ir="envios"><svg class="ic"><use href="#i-envios"/></svg>Envíos</button>
+      <button data-ir="lotes"><svg class="ic"><use href="#i-lotes"/></svg>Lotes USDT</button>
+      <button data-ir="clientes"><svg class="ic"><use href="#i-clientes"/></svg>Clientes</button>
+      <button data-ir="gastos"><svg class="ic"><use href="#i-gastos"/></svg>Gastos</button>
+      <button data-ir="reportes"><svg class="ic"><use href="#i-reportes"/></svg>Reportes</button>
+      <button data-ir="ajustes"><svg class="ic"><use href="#i-ajustes"/></svg>Ajustes</button>
+    </nav>
+    <div class="lateral-pie">
+      <span class="solo-escritorio" id="modoDb"></span>
+      <a class="salir" href="/logout" hidden><svg class="ic"><use href="#i-salir"/></svg>Salir</a>
+    </div>
+  </aside>
+
+  <div class="contenido">
+    <header class="barra">
+      <div><h1 id="titulo">Inicio</h1><p id="subtitulo"></p></div>
+      <div class="chips">
+        <a class="chip" id="chipBot" href="#ajustes"><i></i>Envío automático</a>
+        <a class="chip" id="chipWa" href="#ajustes"><i></i>WhatsApp</a>
+        <a class="chip" id="chipDb" href="#ajustes"><i></i>Datos</a>
+      </div>
+    </header>
+
+    <main>
+      <!-- ================= INICIO ================= -->
+      <div data-tab="inicio" class="pagina">
+        <div class="grid-hero">
+          <section>
+            <div class="cab">
+              <div><h2>Tasa vigente</h2><p>La que publica el bot y usan los envíos nuevos</p></div>
+              <button class="sec mini" data-ir="tasas">Cambiar tasa</button>
+            </div>
+            <div class="tasaVigente"></div>
+          </section>
+          <section>
+            <div class="cab"><div><h2>Publicación automática</h2><p>Todos los días a las 07:00, 13:00 y 19:00 (hora de Brasil)</p></div></div>
+            <div class="lineas autoEstado"><p class="nota">Consultando el bot…</p></div>
+          </section>
         </div>
-        <div class="acciones">
-          <button class="sec" id="btnDb">Probar y conectar</button>
-          <button class="sec" id="btnDbSubir" hidden>Subir datos del archivo local</button>
-          <button class="sec" id="btnDbDesc" hidden>Desconectar</button>
-          <span id="msgDb"></span>
+        <section>
+          <div class="cab"><h2>Hoy y este mes</h2></div>
+          <div class="res" id="iKpi"></div>
+        </section>
+        <div class="grid2">
+          <section>
+            <div class="cab"><div><h2>Fondo USDT y socio</h2><p>Lo que queda para entregar</p></div></div>
+            <div class="res" id="iFondo"></div>
+          </section>
+          <section>
+            <div class="cab"><h2>Alertas</h2></div>
+            <ul class="alertas" id="iAlertas"></ul>
+          </section>
         </div>
-        <p class="nota">Usa la clave <b>secreta</b>: Supabase → Project Settings → API Keys → Secret keys (empieza por <code>sb_secret_</code>; o la «service_role» si tu proyecto usa las claves antiguas). Se guarda en tu PC, fuera de Drive, y solo la usa el servidor del panel. La clave pública no sirve: las tablas están cerradas para ella.</p>
-      </details>
-    </section>
+        <section>
+          <div class="cab"><div><h2>Ganancia por día</h2><p>Últimos 14 días</p></div></div>
+          <svg id="iGrafico" viewBox="0 0 700 200" role="img" aria-label="Ganancia por día" style="width:100%;height:auto;display:block"></svg>
+        </section>
+        <section>
+          <div class="cab"><h2>Últimos envíos</h2><button class="sec mini" data-ir="envios">Registrar un envío</button></div>
+          <div class="tabla"><table id="iUltimos"></table></div>
+        </section>
+      </div>
+
+      <!-- ================= TASA DEL DÍA ================= -->
+      <div data-tab="tasas" class="pagina">
+        <div class="grid-tasa">
+          <div class="col">
+            <section>
+              <div class="cab"><div><h2><span class="paso">1</span>Datos del turno</h2><p>El dólar de hoy y lo que te paga tu socio</p></div></div>
+              <div class="fila">
+                <div>
+                  <label for="usdBrl">USD/BRL (reales por 1 USD)</label>
+                  <div class="linea-input">
+                    <input id="usdBrl" type="number" step="0.0001" min="0" inputmode="decimal">
+                    <button class="sec" id="btnRef" type="button" title="Traer el dólar de referencia">Traer</button>
+                  </div>
+                </div>
+                <div>
+                  <label for="cupUsd">CUP por 1 USD (tu socio)</label>
+                  <input id="cupUsd" type="number" step="0.5" min="0" inputmode="decimal">
+                </div>
+                <div>
+                  <label for="turno">Turno</label>
+                  <select id="turno"><option>Mañana</option><option>Tarde</option><option>Noche</option></select>
+                </div>
+              </div>
+              <p class="nota" id="refInfo">Pulsa «Traer» para usar el dólar comercial de referencia y ajústalo a tu cotización real.</p>
+            </section>
+
+            <section>
+              <div class="cab"><div><h2><span class="paso">2</span>Resultado</h2><p>Con tus comisiones, margen y colchón (se cambian en Ajustes)</p></div></div>
+              <div class="vacio" id="resVacio">Escribe el USD/BRL y el CUP por USD para calcular la tasa.</div>
+              <div class="res" id="res" hidden>
+                <div class="kpi destacado"><b id="kTasa">–</b><span>Tasa a publicar (1 BRL)</span></div>
+                <div class="kpi"><b id="kPeq">–</b><span id="kPeqTxt">Envíos pequeños</span></div>
+                <div class="kpi"><b id="kEq">–</b><span>Equilibrio de mercado</span><small>No dar más que esto</small></div>
+              </div>
+              <div class="res" id="resLote" hidden>
+                <div class="kpi"><b id="kLoteEq">–</b><span id="kLoteEqTxt">Equilibrio con tu lote activo</span></div>
+                <div class="kpi"><b id="kLoteSug">–</b><span>Tasa sugerida con tu lote</span></div>
+              </div>
+              <div id="avisoLote" class="estado" hidden></div>
+            </section>
+
+            <section>
+              <div class="cab"><div><h2><span class="paso">3</span>Fijar la tasa</h2><p>Al fijarla, el bot la publica solo en cada turno hasta que la cambies.</p></div></div>
+              <div class="acciones" style="margin-top:0">
+                <button id="btnFijar" disabled>Fijar como tasa vigente</button>
+                <button class="enviar" id="btnEnviar" disabled>Fijar y publicar ahora</button>
+              </div>
+              <p id="msg" class="nota"></p>
+              <p class="nota">«Publicar ahora» envía el mensaje en este momento a <b id="destinoNombre">—</b> (<a href="#ajustes">cambiar</a>).</p>
+              <details style="margin-top:14px">
+                <summary>Ver o editar el mensaje de «publicar ahora»</summary>
+                <textarea id="mensaje" style="margin-top:10px" placeholder="Calcula la tasa para generar el mensaje"></textarea>
+                <p class="nota">Los cambios solo valen para este envío. Los turnos automáticos usan siempre el formato estándar.</p>
+              </details>
+            </section>
+          </div>
+
+          <div class="col">
+            <section>
+              <div class="cab"><div><h2>Tasa vigente</h2><p>La que tiene el bot ahora</p></div></div>
+              <div class="tasaVigente"></div>
+              <div class="lineas autoEstado" style="margin-top:16px"></div>
+            </section>
+            <section>
+              <div class="cab"><div><h2>Mercado USDT/BRL</h2><p id="mercadoInfo">Binance</p></div><button class="sec mini" id="btnMercado">Actualizar</button></div>
+              <div class="acciones" style="margin:0 0 10px">
+                <button class="sec mini" data-rango="24">24 h</button>
+                <button class="sec mini" data-rango="168">7 días</button>
+                <button class="sec mini" data-rango="30d">30 días</button>
+              </div>
+              <svg id="grafico" viewBox="0 0 700 220" role="img" aria-label="Evolución de USDT/BRL" style="width:100%;height:auto;display:block"></svg>
+              <div class="res" id="mercadoKpi" hidden style="margin-top:10px">
+                <div class="kpi"><b id="mActual">–</b><span>Ahora</span></div>
+                <div class="kpi"><b id="m24">–</b><span>24 h</span></div>
+                <div class="kpi"><b id="m7">–</b><span>7 días</span></div>
+                <div class="kpi"><b id="mRango">–</b><span>Mín – máx 7 días</span></div>
+              </div>
+              <div id="senal" class="estado" style="margin-top:10px" hidden></div>
+              <p class="nota">Señal orientativa (medias móviles, momentum y RSI). No es una predicción. El CUP depende de tu socio.</p>
+            </section>
+          </div>
+        </div>
+
+        <section>
+          <div class="cab">
+            <div><h2>Historial de tasas</h2><p>La más reciente es la vigente: la publica el bot y la toman los envíos nuevos</p></div>
+            <a class="boton" href="/api/erp/exportar?c=tasas"><svg class="ic"><use href="#i-descarga"/></svg>CSV</a>
+          </div>
+          <details id="detTasa">
+            <summary>Registrar o corregir una tasa a mano</summary>
+            <form id="fTasa" class="fila" style="margin-top:12px">
+              <input type="hidden" name="id">
+              <div><label>Fecha</label><input name="fecha" type="date" required></div>
+              <div><label>Turno</label><select name="turno"><option>Mañana</option><option>Tarde</option><option>Noche</option></select></div>
+              <div><label>CUP por 1 BRL</label><input name="tasaCup" type="number" step="0.5" min="0" required></div>
+              <div><label>Envíos pequeños (opcional)</label><input name="tasaPequena" type="number" step="0.5" min="0"></div>
+              <div><label>USD/BRL (recomendado)</label><input name="usdBrl" type="number" step="0.0001" min="0"></div>
+              <div><label>CUP por USD (opcional)</label><input name="cupUsd" type="number" step="0.5" min="0"></div>
+              <div style="grid-column:1/-1"><label>Notas</label><input name="notas"></div>
+            </form>
+            <div class="acciones">
+              <button id="btnTasaGuardar">Registrar tasa</button>
+              <button class="sec" id="btnTasaCalc">Usar la tasa calculada</button>
+              <button class="sec" id="btnTasaCancelar" hidden>Cancelar edición</button>
+              <span id="msgTasa"></span>
+            </div>
+            <p class="nota">Sin USD/BRL el bot no puede detectar un cambio fuerte del dólar. Corregir una tasa vieja no cambia la vigente.</p>
+          </details>
+          <div class="tabla"><table id="tTasas"></table></div>
+        </section>
+      </div>
+
+      <!-- ================= ENVÍOS ================= -->
+      <div data-tab="envios" class="pagina">
+        <section>
+          <div class="cab"><div><h2 id="hEnvio">Nuevo envío</h2><p>La tasa se llena sola con la vigente según el monto</p></div></div>
+          <form id="fEnvio" class="fila">
+            <input type="hidden" name="id">
+            <div><label>Fecha</label><input name="fecha" type="date" required></div>
+            <div><label>Cliente</label><input name="cliente" list="listaClientes" required autocomplete="off"></div>
+            <div><label>Monto cobrado (BRL)</label><input name="montoBrl" type="number" step="0.01" min="0" inputmode="decimal" required></div>
+            <div><label>Tasa (CUP por 1 BRL)</label><input name="tasa" type="number" step="0.5" min="0" inputmode="decimal" required></div>
+            <div><label>CUP a entregar (vacío = monto × tasa)</label><input name="cupEntregados" type="number" step="0.5" min="0" inputmode="decimal"></div>
+            <div><label>Lote USDT</label><select name="lote"></select></div>
+            <div><label>Estado</label><select name="estado"><option>Pendiente</option><option>Entregado</option><option>Cancelado</option></select></div>
+            <div><label>Tarjeta del destinatario</label><input name="tarjeta" autocomplete="off"></div>
+            <div><label>Teléfono del destinatario</label><input name="telefono" autocomplete="off"></div>
+            <div style="grid-column:1/-1"><label>Notas</label><input name="notas"></div>
+          </form>
+          <datalist id="listaClientes"></datalist>
+          <div class="res" id="ePrevia" hidden style="margin-top:14px"></div>
+          <div class="acciones">
+            <button id="btnEnvioGuardar">Guardar envío</button>
+            <button class="sec" id="btnEnvioCancelar" hidden>Cancelar edición</button>
+            <span id="msgEnvio"></span>
+          </div>
+        </section>
+        <section>
+          <div class="cab">
+            <div><h2>Envíos</h2><p>📋 copia los datos de entrega para el socio · «auto» = lote asignado solo (el más antiguo con saldo)</p></div>
+            <a class="boton" href="/api/erp/exportar?c=envios"><svg class="ic"><use href="#i-descarga"/></svg>CSV</a>
+          </div>
+          <div class="filtros">
+            <div><label>Buscar (cliente, tarjeta, teléfono)</label><input id="eBuscar" type="search"></div>
+            <div><label>Mes</label><select id="eMes"></select></div>
+            <div><label>Estado</label><select id="eEstado"><option value="">Todos</option><option>Pendiente</option><option>Entregado</option><option>Cancelado</option></select></div>
+          </div>
+          <div class="tabla"><table id="tEnvios"></table></div>
+        </section>
+      </div>
+
+      <!-- ================= LOTES ================= -->
+      <div data-tab="lotes" class="pagina">
+        <section>
+          <div class="cab"><div><h2 id="hLote">Nueva compra de USDT</h2><p>Cada compra fija el costo real de los envíos que salen de ella</p></div></div>
+          <form id="fLote" class="fila">
+            <input type="hidden" name="id">
+            <div><label>Fecha</label><input name="fecha" type="date" required></div>
+            <div><label>Código del lote</label><input name="codigo" required></div>
+            <div><label>USDT comprados</label><input name="usdt" type="number" step="0.01" min="0" required></div>
+            <div><label>BRL pagados</label><input name="brl" type="number" step="0.01" min="0" required></div>
+            <div><label>CUP por USDT (tu socio)</label><input name="cupPorUsdt" type="number" step="0.5" min="0" required></div>
+            <div><label>USDT ya usados antes</label><input name="usadosPrevios" type="number" step="0.01" min="0"></div>
+            <div style="grid-column:1/-1"><label>Notas</label><input name="notas"></div>
+          </form>
+          <div class="res" id="lPrevia" hidden style="margin-top:14px"></div>
+          <div class="acciones">
+            <button id="btnLoteGuardar">Guardar lote</button>
+            <button class="sec" id="btnLoteCancelar" hidden>Cancelar edición</button>
+            <span id="msgLote"></span>
+          </div>
+        </section>
+        <section>
+          <div class="cab">
+            <div><h2>Lotes</h2><p>Equilibrio = lo máximo que puedes dar por 1 BRL sin perder · ACTIVO = el que se gasta ahora</p></div>
+            <a class="boton" href="/api/erp/exportar?c=lotes"><svg class="ic"><use href="#i-descarga"/></svg>CSV</a>
+          </div>
+          <div class="res" id="lKpi"></div>
+          <div class="tabla"><table id="tLotes"></table></div>
+        </section>
+      </div>
+
+      <!-- ================= CLIENTES ================= -->
+      <div data-tab="clientes" class="pagina">
+        <section>
+          <div class="cab">
+            <div><h2>Clientes</h2><p>Se arma solo con los envíos. Pulsa un nombre para ver sus envíos.</p></div>
+            <a class="boton" href="/api/erp/exportar?c=clientes"><svg class="ic"><use href="#i-descarga"/></svg>CSV</a>
+          </div>
+          <div class="filtros"><div><label>Buscar</label><input id="cBuscar" type="search"></div></div>
+          <div class="tabla"><table id="tClientes"></table></div>
+        </section>
+      </div>
+
+      <!-- ================= GASTOS ================= -->
+      <div data-tab="gastos" class="pagina">
+        <section>
+          <div class="cab"><div><h2 id="hGasto">Nuevo gasto</h2><p>Se restan de la ganancia en Reportes (utilidad neta)</p></div></div>
+          <form id="fGasto" class="fila">
+            <input type="hidden" name="id">
+            <div><label>Fecha</label><input name="fecha" type="date" required></div>
+            <div><label>Concepto</label><input name="concepto" required></div>
+            <div><label>Categoría</label><input name="categoria" list="listaCategorias"></div>
+            <div><label>Monto (BRL)</label><input name="montoBrl" type="number" step="0.01" min="0" required></div>
+          </form>
+          <datalist id="listaCategorias"><option>WhatsApp / API</option><option>Herramientas y software</option><option>Ayudante</option><option>Publicidad</option><option>Transporte / entrega</option><option>Comisiones bancarias</option><option>Otros</option></datalist>
+          <div class="acciones">
+            <button id="btnGastoGuardar">Guardar gasto</button>
+            <button class="sec" id="btnGastoCancelar" hidden>Cancelar edición</button>
+            <span id="msgGasto"></span>
+          </div>
+        </section>
+        <section>
+          <div class="cab"><h2>Gastos</h2><a class="boton" href="/api/erp/exportar?c=gastos"><svg class="ic"><use href="#i-descarga"/></svg>CSV</a></div>
+          <div class="tabla"><table id="tGastos"></table></div>
+        </section>
+      </div>
+
+      <!-- ================= REPORTES ================= -->
+      <div data-tab="reportes" class="pagina">
+        <section>
+          <div class="cab">
+            <div><h2>Ganancias y pérdidas por mes</h2><p>Utilidad neta = ganancia de los envíos − gastos</p></div>
+            <a class="boton" href="/api/erp/exportar?c=meses"><svg class="ic"><use href="#i-descarga"/></svg>CSV</a>
+          </div>
+          <svg id="rGrafico" viewBox="0 0 700 220" role="img" aria-label="Utilidad por mes" style="width:100%;height:auto;display:block"></svg>
+          <div class="tabla"><table id="tMeses"></table></div>
+        </section>
+        <section>
+          <div class="cab"><h2>Detalle por día</h2></div>
+          <div class="filtros"><div><label>Mes</label><select id="rMes"></select></div></div>
+          <div class="tabla"><table id="tDias"></table></div>
+        </section>
+        <section>
+          <div class="cab"><div><h2>Socio en Cuba (CUP)</h2><p>Recibido = CUP acreditados por tus lotes · Libre = lo que aún puede entregar</p></div></div>
+          <div class="res" id="rSocio"></div>
+        </section>
+      </div>
+
+      <!-- ================= AJUSTES ================= -->
+      <div data-tab="ajustes" class="pagina">
+        <div class="grid2">
+          <section>
+            <div class="cab"><div><h2>Cálculo de la tasa</h2><p>Los porcentajes se escriben normales: 3 = 3 %</p></div></div>
+            <h3 style="margin-top:0">Comisiones y margen (%)</h3>
+            <div class="fila" id="supuestos"></div>
+            <h3>Tramos por monto</h3>
+            <div class="fila" id="tarifa"></div>
+          </section>
+          <section>
+            <div class="cab"><div><h2>Mensaje y alertas</h2><p>El enlace va al pie de cada publicación</p></div></div>
+            <div><label for="enlace">Enlace del grupo</label><input id="enlace" type="url"></div>
+            <div style="margin-top:12px"><label for="alertaUsdt">Avisarme cuando queden menos de (USDT)</label><input id="alertaUsdt" type="number" step="1" min="0"></div>
+          </section>
+        </div>
+        <div class="guardar-barra">
+          <span id="msgAjustes"></span>
+          <button id="btnGuardar">Guardar ajustes</button>
+        </div>
+
+        <section>
+          <div class="cab"><div><h2>Publicación automática</h2><p>n8n publica la tasa vigente a las 07:00, 13:00 y 19:00 (hora de Brasil)</p></div></div>
+          <div class="lineas autoEstado"></div>
+          <details style="margin-top:16px">
+            <summary>¿Cómo funciona?</summary>
+            <ul class="nota" style="padding-left:18px;line-height:1.7">
+              <li>Al fijar una tasa (o registrar la más reciente), el panel se la manda al bot en n8n.</li>
+              <li>En cada turno el bot publica esa misma tasa en el grupo, con el formato estándar.</li>
+              <li>Antes de publicar compara el dólar con el USD/BRL guardado con la tasa: si se movió más de 3 %, no publica y te avisa por WhatsApp hasta que fijes una nueva.</li>
+              <li>En el servidor se configura con las variables <code>N8N_TASA_URL</code> y <code>N8N_TASA_TOKEN</code>.</li>
+            </ul>
+          </details>
+        </section>
+
+        <section>
+          <div class="cab"><div><h2>WhatsApp</h2><p>Conexión con Evolution API</p></div></div>
+          <div id="wa" class="estado">Conectando…</div>
+          <img id="qr" alt="QR de WhatsApp" hidden>
+          <div class="fila" style="margin-top:14px">
+            <div>
+              <label for="destino">Grupo para «publicar ahora»</label>
+              <div class="linea-input">
+                <select id="destino"><option value="">— elige grupo o canal —</option></select>
+                <button class="sec" id="btnDestinos" type="button">Actualizar</button>
+              </div>
+            </div>
+          </div>
+          <details id="evo" style="margin-top:14px">
+            <summary>Datos de conexión</summary>
+            <div class="fila" style="margin-top:12px">
+              <div><label for="evoUrl">URL del servidor</label><input id="evoUrl" type="url"></div>
+              <div><label for="evoKey">Apikey <span id="evoKeyNota"></span></label><input id="evoKey" type="password" autocomplete="off"></div>
+              <div><label for="evoInst">Nombre de la instancia</label><input id="evoInst" value="flujo-cuba"></div>
+            </div>
+            <div class="acciones"><button class="sec" id="btnEvo">Guardar conexión</button></div>
+            <p class="nota" id="evoNota">Se guarda fuera de Drive. Si la instancia no existe, se crea y aparece el QR.</p>
+          </details>
+        </section>
+
+        <section>
+          <div class="cab"><div><h2>Base de datos</h2><p>Dónde se guardan envíos, lotes, gastos y tasas</p></div></div>
+          <div id="dbEstado" class="estado">Consultando…</div>
+          <details id="dbDet" style="margin-top:14px">
+            <summary>Conexión con Supabase</summary>
+            <div class="fila" style="margin-top:12px">
+              <div><label for="dbUrl">URL del proyecto</label><input id="dbUrl" type="url" placeholder="https://xxxx.supabase.co"></div>
+              <div><label for="dbKey">Clave secreta <span id="dbKeyNota"></span></label><input id="dbKey" type="password" autocomplete="off"></div>
+            </div>
+            <div class="acciones">
+              <button class="sec" id="btnDb">Probar y conectar</button>
+              <button class="sec" id="btnDbSubir" hidden>Subir datos del archivo local</button>
+              <button class="sec" id="btnDbDesc" hidden>Desconectar</button>
+              <span id="msgDb"></span>
+            </div>
+            <p class="nota">Usa la clave <b>secreta</b> (Project Settings → API Keys → Secret keys, empieza por <code>sb_secret_</code>). Solo la usa el servidor del panel; la clave pública no sirve.</p>
+          </details>
+        </section>
+      </div>
+    </main>
   </div>
-
-  <!-- ================= TASAS (panel original) ================= -->
-  <div data-tab="tasas" class="tasas-ancho">
-  <section>
-    <h2>1 · WhatsApp</h2>
-    <div id="wa" class="estado">Conectando…</div>
-    <img id="qr" alt="QR de WhatsApp" hidden>
-    <details id="evo" style="margin-top:12px">
-      <summary>Conexión con Evolution API</summary>
-      <div class="fila" style="margin-top:12px">
-        <div><label for="evoUrl">URL del servidor (ej. http://localhost:8080)</label><input id="evoUrl" type="url"></div>
-        <div><label for="evoKey">Apikey <span id="evoKeyNota"></span></label><input id="evoKey" type="password" autocomplete="off"></div>
-        <div><label for="evoInst">Nombre de la instancia</label><input id="evoInst" value="flujo-cuba"></div>
-      </div>
-      <div class="acciones"><button class="sec" id="btnEvo">Guardar conexión</button></div>
-      <p class="nota">Se guarda en tu PC (fuera de Drive). Si la instancia no existe, se crea y aparece el QR.</p>
-    </details>
-  </section>
-
-  <section>
-    <h2>📈 Mercado · USDT/BRL en Binance</h2>
-    <div class="acciones" style="margin:0 0 10px">
-      <button class="sec" data-rango="24">24 h</button>
-      <button class="sec" data-rango="168">7 días</button>
-      <button class="sec" data-rango="30d">30 días</button>
-      <button class="sec" id="btnMercado">Actualizar</button>
-      <span id="mercadoInfo" class="nota"></span>
-    </div>
-    <svg id="grafico" viewBox="0 0 700 220" role="img" aria-label="Evolución de USDT/BRL" style="width:100%;height:auto;display:block"></svg>
-    <div class="res" id="mercadoKpi" hidden>
-      <div class="kpi"><b id="mActual">–</b><span>USDT/BRL ahora</span></div>
-      <div class="kpi"><b id="m24">–</b><span>Cambio 24 h</span></div>
-      <div class="kpi"><b id="m7">–</b><span>Cambio 7 días</span></div>
-      <div class="kpi"><b id="mRango">–</b><span>Mín – máx 7 días</span></div>
-    </div>
-    <div id="senal" class="estado" style="margin-top:12px" hidden></div>
-    <p class="nota">La señal usa medias móviles, momentum y RSI sobre datos públicos de Binance. Es orientativa, no una predicción fiable: nadie acierta el mercado. Mira solo el par USDT/BRL; el CUP depende de tu socio.</p>
-  </section>
-
-  <section>
-    <h2>2 · Datos del turno</h2>
-    <div class="fila">
-      <div>
-        <label for="usdBrl">USD/BRL (reales por 1 USD)</label>
-        <input id="usdBrl" type="number" step="0.0001" min="0" inputmode="decimal">
-      </div>
-      <div>
-        <label for="cupUsd">CUP por 1 USD (el que te da tu socio)</label>
-        <input id="cupUsd" type="number" step="0.5" min="0" inputmode="decimal">
-      </div>
-      <div>
-        <label for="turno">Turno</label>
-        <select id="turno"><option>Mañana</option><option>Tarde</option><option>Noche</option></select>
-      </div>
-    </div>
-    <div class="acciones">
-      <button class="sec" id="btnRef">Traer USD/BRL de referencia</button>
-      <span id="refInfo" class="nota"></span>
-    </div>
-    <div class="res" id="res" hidden>
-      <div class="kpi"><b id="kTasa">–</b><span>CUP por 1 BRL (a publicar)</span></div>
-      <div class="kpi"><b id="kPeq">–</b><span id="kPeqTxt">CUP por 1 BRL en envíos pequeños</span></div>
-      <div class="kpi"><b id="kEq">–</b><span>Tasa de equilibrio (no dar más)</span></div>
-    </div>
-    <div class="res" id="resLote" hidden>
-      <div class="kpi"><b id="kLoteEq">–</b><span id="kLoteEqTxt">Equilibrio con tu lote activo</span></div>
-      <div class="kpi"><b id="kLoteSug">–</b><span>Tasa sugerida con tu lote</span></div>
-    </div>
-    <div id="avisoLote" class="estado" style="margin-top:10px" hidden></div>
-  </section>
-
-  <section>
-    <h2>3 · Mensaje y envío</h2>
-    <label for="mensaje">Mensaje (puedes editarlo antes de enviar)</label>
-    <textarea id="mensaje" placeholder="Calcula la tasa para generar el mensaje"></textarea>
-    <div class="fila" style="margin-top:12px">
-      <div>
-        <label for="destino">Enviar a</label>
-        <select id="destino"><option value="">— elige grupo o canal —</option></select>
-      </div>
-    </div>
-    <div class="acciones">
-      <button class="sec" id="btnDestinos">Actualizar lista</button>
-      <button class="enviar" id="btnEnviar" disabled>Enviar a WhatsApp</button>
-      <span id="msg"></span>
-    </div>
-    <p class="nota">Nada se envía hasta que pulses «Enviar». Revisa el mensaje y el destino primero.</p>
-  </section>
-
-  <section>
-    <details>
-      <summary>Supuestos y ajustes (comisiones, margen, tramos y enlace)</summary>
-      <h2 style="margin-top:14px">Comisiones y margen (en %)</h2>
-      <div class="fila" id="supuestos"></div>
-      <h2 style="margin-top:16px">Tramos por monto</h2>
-      <div class="fila" id="tarifa"></div>
-      <div style="margin-top:12px"><label for="enlace">Enlace del grupo (va al pie del mensaje)</label><input id="enlace" type="url"></div>
-      <div class="fila" style="margin-top:12px"><div><label for="alertaUsdt">Alerta: USDT mínimo en el fondo</label><input id="alertaUsdt" type="number" step="1" min="0"></div></div>
-      <div class="acciones"><button id="btnGuardar">Guardar todo</button><span id="msgAjustes"></span></div>
-      <p class="nota">Los porcentajes se escriben normales: 3 = 3 %. Al guardar, el mensaje se recalcula.</p>
-    </details>
-  </section>
-
-  <section>
-    <h2>4 · Tasas publicadas</h2>
-    <form id="fTasa" class="fila">
-      <input type="hidden" name="id">
-      <div><label>Fecha</label><input name="fecha" type="date" required></div>
-      <div><label>Turno</label><select name="turno"><option>Mañana</option><option>Tarde</option><option>Noche</option></select></div>
-      <div><label>CUP por 1 BRL (publicada)</label><input name="tasaCup" type="number" step="0.5" min="0" required></div>
-      <div><label>Tasa envíos pequeños (opcional)</label><input name="tasaPequena" type="number" step="0.5" min="0"></div>
-      <div><label>USD/BRL (opcional)</label><input name="usdBrl" type="number" step="0.0001" min="0"></div>
-      <div><label>CUP por USD (opcional)</label><input name="cupUsd" type="number" step="0.5" min="0"></div>
-      <div style="grid-column:1/-1"><label>Notas</label><input name="notas"></div>
-    </form>
-    <div class="acciones">
-      <button id="btnTasaGuardar">Registrar tasa</button>
-      <button class="sec" id="btnTasaCalc">Usar la tasa calculada arriba</button>
-      <button class="sec" id="btnTasaCancelar" hidden>Cancelar edición</button>
-      <span id="msgTasa"></span>
-      <a class="boton" href="/api/erp/exportar?c=tasas" style="margin-left:auto">⬇ CSV</a>
-    </div>
-    <p class="nota">Al enviar por WhatsApp la tasa se registra sola. Si la decides a mano, regístrala aquí: los envíos nuevos la toman por defecto.</p>
-    <div class="tabla"><table id="tTasas"></table></div>
-  </section>
-  </div>
-
-  <!-- ================= ENVÍOS ================= -->
-  <div data-tab="envios" class="grid2" style="grid-template-columns:1fr">
-    <section>
-      <h2 id="hEnvio">Nuevo envío</h2>
-      <form id="fEnvio" class="fila">
-        <input type="hidden" name="id">
-        <div><label>Fecha</label><input name="fecha" type="date" required></div>
-        <div><label>Cliente</label><input name="cliente" list="listaClientes" required autocomplete="off"></div>
-        <div><label>Monto cobrado (BRL)</label><input name="montoBrl" type="number" step="0.01" min="0" inputmode="decimal" required></div>
-        <div><label>Tasa aplicada (CUP por 1 BRL)</label><input name="tasa" type="number" step="0.5" min="0" inputmode="decimal" required></div>
-        <div><label>CUP a entregar (vacío = monto × tasa)</label><input name="cupEntregados" type="number" step="0.5" min="0" inputmode="decimal"></div>
-        <div><label>Lote USDT</label><select name="lote"></select></div>
-        <div><label>Estado</label><select name="estado"><option>Pendiente</option><option>Entregado</option><option>Cancelado</option></select></div>
-        <div><label>Tarjeta del destinatario</label><input name="tarjeta" autocomplete="off"></div>
-        <div><label>Teléfono del destinatario</label><input name="telefono" autocomplete="off"></div>
-        <div style="grid-column:1/-1"><label>Notas</label><input name="notas"></div>
-      </form>
-      <datalist id="listaClientes"></datalist>
-      <div class="res previa" id="ePrevia" hidden></div>
-      <div class="acciones">
-        <button id="btnEnvioGuardar">Guardar envío</button>
-        <button class="sec" id="btnEnvioCancelar" hidden>Cancelar edición</button>
-        <span id="msgEnvio"></span>
-      </div>
-    </section>
-    <section>
-      <h2>Envíos</h2>
-      <div class="filtros">
-        <div><label>Buscar (cliente, tarjeta, teléfono)</label><input id="eBuscar" type="search"></div>
-        <div><label>Mes</label><select id="eMes"></select></div>
-        <div><label>Estado</label><select id="eEstado"><option value="">Todos</option><option>Pendiente</option><option>Entregado</option><option>Cancelado</option></select></div>
-        <a class="boton" href="/api/erp/exportar?c=envios">⬇ CSV para Excel</a>
-      </div>
-      <div class="tabla"><table id="tEnvios"></table></div>
-      <p class="nota">📋 copia los datos de entrega para mandárselos al socio por WhatsApp. Lote «auto» = se asignó solo al lote más antiguo con saldo (FIFO).</p>
-    </section>
-  </div>
-
-  <!-- ================= LOTES ================= -->
-  <div data-tab="lotes" class="grid2" style="grid-template-columns:1fr">
-    <section>
-      <h2 id="hLote">Nueva compra de USDT</h2>
-      <form id="fLote" class="fila">
-        <input type="hidden" name="id">
-        <div><label>Fecha</label><input name="fecha" type="date" required></div>
-        <div><label>Código del lote</label><input name="codigo" required></div>
-        <div><label>USDT comprados</label><input name="usdt" type="number" step="0.01" min="0" required></div>
-        <div><label>BRL pagados</label><input name="brl" type="number" step="0.01" min="0" required></div>
-        <div><label>CUP por USDT (lo que te da el socio)</label><input name="cupPorUsdt" type="number" step="0.5" min="0" required></div>
-        <div><label>USDT ya usados antes (normalmente 0)</label><input name="usadosPrevios" type="number" step="0.01" min="0"></div>
-        <div style="grid-column:1/-1"><label>Notas</label><input name="notas"></div>
-      </form>
-      <div class="res previa" id="lPrevia" hidden></div>
-      <div class="acciones">
-        <button id="btnLoteGuardar">Guardar lote</button>
-        <button class="sec" id="btnLoteCancelar" hidden>Cancelar edición</button>
-        <span id="msgLote"></span>
-      </div>
-    </section>
-    <section>
-      <h2>Lotes</h2>
-      <div class="res" id="lKpi" style="margin-top:0"></div>
-      <div class="tabla"><table id="tLotes"></table></div>
-      <div class="acciones"><a class="boton" href="/api/erp/exportar?c=lotes">⬇ CSV para Excel</a></div>
-      <p class="nota">Equilibrio = lo máximo que puedes dar por 1 BRL con ese lote sin perder. ACTIVO = el lote que se gasta ahora (el más antiguo con saldo).</p>
-    </section>
-  </div>
-
-  <!-- ================= CLIENTES ================= -->
-  <div data-tab="clientes">
-    <section>
-      <h2>Clientes</h2>
-      <div class="filtros">
-        <div><label>Buscar</label><input id="cBuscar" type="search"></div>
-        <a class="boton" href="/api/erp/exportar?c=clientes">⬇ CSV para Excel</a>
-      </div>
-      <div class="tabla"><table id="tClientes"></table></div>
-      <p class="nota">Se arma solo con los envíos. Pulsa un nombre para ver sus envíos.</p>
-    </section>
-  </div>
-
-  <!-- ================= GASTOS ================= -->
-  <div data-tab="gastos" class="grid2" style="grid-template-columns:1fr">
-    <section>
-      <h2 id="hGasto">Nuevo gasto</h2>
-      <form id="fGasto" class="fila">
-        <input type="hidden" name="id">
-        <div><label>Fecha</label><input name="fecha" type="date" required></div>
-        <div><label>Concepto</label><input name="concepto" required></div>
-        <div><label>Categoría</label><input name="categoria" list="listaCategorias"></div>
-        <div><label>Monto (BRL)</label><input name="montoBrl" type="number" step="0.01" min="0" required></div>
-      </form>
-      <datalist id="listaCategorias"><option>WhatsApp / API</option><option>Herramientas y software</option><option>Ayudante</option><option>Publicidad</option><option>Transporte / entrega</option><option>Comisiones bancarias</option><option>Otros</option></datalist>
-      <div class="acciones">
-        <button id="btnGastoGuardar">Guardar gasto</button>
-        <button class="sec" id="btnGastoCancelar" hidden>Cancelar edición</button>
-        <span id="msgGasto"></span>
-      </div>
-    </section>
-    <section>
-      <h2>Gastos</h2>
-      <div class="tabla"><table id="tGastos"></table></div>
-      <div class="acciones"><a class="boton" href="/api/erp/exportar?c=gastos">⬇ CSV para Excel</a></div>
-      <p class="nota">Los gastos se restan de la ganancia en «Reportes» (utilidad neta).</p>
-    </section>
-  </div>
-
-  <!-- ================= REPORTES ================= -->
-  <div data-tab="reportes" class="grid2" style="grid-template-columns:1fr">
-    <section>
-      <h2>Ganancias y pérdidas por mes</h2>
-      <svg id="rGrafico" viewBox="0 0 700 220" role="img" aria-label="Utilidad por mes" style="width:100%;height:auto;display:block"></svg>
-      <div class="tabla"><table id="tMeses"></table></div>
-      <div class="acciones"><a class="boton" href="/api/erp/exportar?c=meses">⬇ CSV para Excel</a></div>
-    </section>
-    <section>
-      <h2>Detalle por día</h2>
-      <div class="filtros"><div><label>Mes</label><select id="rMes"></select></div></div>
-      <div class="tabla"><table id="tDias"></table></div>
-    </section>
-    <section>
-      <h2>Socio en Cuba (CUP)</h2>
-      <div class="res" id="rSocio" style="margin-top:0"></div>
-      <p class="nota">Recibido = CUP que te acreditó por los USDT de tus lotes. Libre = lo que todavía puede entregar en nuevos envíos.</p>
-    </section>
-  </div>
-</main>
+</div>
+<div id="toast" role="status" aria-live="polite"></div>
 
 <script>
 const $ = (id) => document.getElementById(id);
 const SUPUESTOS = {
   spreadUsd: 'Spread al convertir BRL a USD',
   pixFee: 'Comisión de cobro PIX/banco',
-  partnerFeeCup: 'Comisión o costo de entrega en CUP (0 si no pagas)',
+  partnerFeeCup: 'Costo de entrega en CUP (0 si no pagas)',
   margin: 'Margen objetivo',
   cushion: 'Colchón por volatilidad',
 };
 const TARIFA = {
   montoMinimoBrl: 'Envío mínimo (BRL)',
-  umbralBrl: 'Por debajo de este monto (BRL) aplica la tasa pequeña',
-  restaCup: 'CUP que se restan a la tasa en envíos pequeños',
+  umbralBrl: 'Debajo de este monto aplica la tasa pequeña (BRL)',
+  restaCup: 'CUP que se restan en envíos pequeños',
+};
+const PAGINAS = {
+  inicio: 'Resumen del negocio y del envío automático',
+  tasas: 'Calcula la tasa, fíjala y el bot la publica en cada turno',
+  envios: 'Cada remesa con su costo real y ganancia',
+  lotes: 'Compras de USDT y su costo',
+  clientes: 'Historial por cliente',
+  gastos: 'Gastos del negocio',
+  reportes: 'Ganancias y pérdidas',
+  ajustes: 'Cálculo, mensaje y conexiones',
 };
 const fmt = (n, d) => n.toFixed(d).replace('.', ',');
 
@@ -426,9 +622,23 @@ async function api(ruta, body) {
   return j;
 }
 
+let tToast;
+function toast(texto, ok = true) {
+  const t = $('toast');
+  t.textContent = texto;
+  t.className = 'ver' + (ok ? '' : ' err');
+  clearTimeout(tToast);
+  tToast = setTimeout(() => { t.className = ok ? '' : 'err'; }, 4500);
+}
+
 function aviso(texto, ok) {
   $('msg').textContent = texto;
-  $('msg').className = ok ? 'ok' : 'err';
+  $('msg').className = 'nota ' + (ok ? 'ok' : 'err');
+}
+
+function ponerChip(id, tipo, texto) {
+  $(id).className = 'chip ' + tipo;
+  $(id).innerHTML = `<i></i>${esc(texto)}`;
 }
 
 let supuestosGuardados = {};
@@ -451,15 +661,18 @@ function dibujarTarifa(t) {
   ).join('');
 }
 
+// ===================== WHATSAPP =====================
 let conectadoAntes = false;
 async function refrescarEstado(inicial) {
   try {
     const { whatsapp: w, config } = await api('/api/estado');
     const caja = $('wa');
-    const etiquetas = { sin_configurar: 'Falta conectar con Evolution API (abre «Conexión»)', iniciando: 'Iniciando WhatsApp…', qr: 'Escanea el QR: WhatsApp → Dispositivos vinculados → Vincular',
+    const etiquetas = { sin_configurar: 'Falta conectar con Evolution API (abre «Datos de conexión»)', iniciando: 'Iniciando WhatsApp…', qr: 'Escanea el QR: WhatsApp → Dispositivos vinculados → Vincular',
       autenticando: 'Autenticando…', listo: '✅ WhatsApp conectado', desconectado: 'Desconectado', error: 'Error' };
     caja.textContent = (etiquetas[w.estado] || w.estado) + (w.error ? ` — ${w.error}` : '');
     caja.className = 'estado ' + (w.estado === 'listo' ? 'listo' : w.estado === 'error' || w.estado === 'desconectado' ? 'error' : '');
+    ponerChip('chipWa', w.estado === 'listo' ? 'ok' : w.estado === 'qr' || w.estado === 'autenticando' ? 'av' : 'err',
+      w.estado === 'listo' ? 'WhatsApp conectado' : w.estado === 'sin_configurar' ? 'WhatsApp sin configurar' : 'WhatsApp desconectado');
     $('qr').hidden = !w.qr;
     if (w.qr) $('qr').src = w.qr;
     if (inicial) {
@@ -468,75 +681,43 @@ async function refrescarEstado(inicial) {
       const c = w.conf || {};
       $('evoUrl').value = c.url || ''; if (c.instance) $('evoInst').value = c.instance;
       $('evoKeyNota').textContent = c.tieneKey ? '(ya guardada; déjala vacía para conservarla)' : '';
-      $('evo').open = w.estado === 'sin_configurar' || w.estado === 'error';
+      for (const id of ['evoUrl', 'evoKey', 'evoInst', 'btnEvo']) $(id).disabled = !!c.desdeEntorno;
+      if (c.desdeEntorno) $('evoNota').textContent = 'Definida en el servidor (variables de entorno): no se cambia desde el panel.';
+      $('evo').open = !c.desdeEntorno && (w.estado === 'sin_configurar' || w.estado === 'error');
+      pintarDestino();
     }
     if (w.estado === 'listo' && !conectadoAntes) { conectadoAntes = true; cargarDestinos(); }
     if (w.estado !== 'listo') conectadoAntes = false;
-  } catch { $('wa').textContent = 'El servidor no responde'; $('wa').className = 'estado error'; }
+    return w.estado;
+  } catch {
+    $('wa').textContent = 'El servidor no responde'; $('wa').className = 'estado error';
+    ponerChip('chipWa', 'err', 'Sin conexión con el panel');
+    return 'error';
+  }
 }
+// Mientras se vincula se consulta seguido (para el QR); conectado, cada 30 s.
+async function cicloWa() { const e = await refrescarEstado(false); setTimeout(cicloWa, e === 'listo' ? 30_000 : 4_000); }
 
 async function cargarDestinos() {
   try {
     const lista = await api('/api/destinos');
     $('destino').innerHTML = '<option value="">— elige grupo o canal —</option>' +
-      lista.map((d) => `<option value="${d.id}">${d.tipo}: ${d.nombre.replace(/</g, '&lt;')}</option>`).join('');
+      lista.map((d) => `<option value="${esc(d.id)}">${esc(d.tipo)}: ${esc(d.nombre)}</option>`).join('');
     if (window.destinoGuardado) $('destino').value = window.destinoGuardado;
-    actualizarBoton();
+    pintarDestino();
   } catch (e) { aviso(e.message, false); }
 }
 
-function turnoAuto() {
-  const h = new Date().getHours();
-  $('turno').value = h < 12 ? 'Mañana' : h < 18 ? 'Tarde' : 'Noche';
-}
-
-async function calcular() {
-  const usdBrl = parseFloat($('usdBrl').value), cupUsd = parseFloat($('cupUsd').value);
-  if (!(usdBrl > 0) || !(cupUsd > 0)) { $('res').hidden = true; return; }
-  try {
-    const r = await api('/api/calcular', { usdBrl, cupUsd, turno: $('turno').value });
-    $('kTasa').textContent = fmt(r.tasaCup, 1) + ' CUP';
-    $('kPeq').textContent = fmt(r.tasaPequena, 1) + ' CUP';
-    $('kEq').textContent = fmt(r.equilibrio, 2) + ' CUP';
-    $('res').hidden = false;
-    $('mensaje').value = r.mensaje;
-    ultimoCalculo = { tasaCup: r.tasaCup, tasaPequena: r.tasaPequena, usdBrl, cupUsd, turno: $('turno').value };
-    // Comparación con lo que de verdad costó el USDT del lote activo.
-    $('resLote').hidden = !r.lote;
-    const av = $('avisoLote');
-    if (r.lote) {
-      $('kLoteEq').textContent = fmt(r.lote.equilibrio, 2) + ' CUP';
-      $('kLoteEqTxt').textContent = `Equilibrio con tu lote ${r.lote.codigo} (costo R$ ${fmt(r.lote.costo, 4)})`;
-      $('kLoteSug').textContent = fmt(r.lote.sugerida, 1) + ' CUP';
-      const pierde = r.tasaCup > r.lote.equilibrio;
-      av.hidden = false;
-      av.className = 'estado ' + (pierde ? 'error' : 'listo');
-      av.textContent = pierde
-        ? `⚠️ Con ${fmt(r.tasaCup, 1)} CUP pierdes dinero con el lote ${r.lote.codigo}: no des más de ${fmt(r.lote.equilibrio, 2)}.`
-        : `✅ Con ${fmt(r.tasaCup, 1)} CUP ganas ${fmt((1 - r.tasaCup / r.lote.equilibrio) * 100, 1)} % sobre el costo real del lote ${r.lote.codigo}.`;
-    } else if (r.avisoDb) {
-      av.hidden = false; av.className = 'estado error'; av.textContent = `No se pudo leer tus lotes: ${r.avisoDb}`;
-    } else {
-      av.hidden = false; av.className = 'estado'; av.textContent = 'Registra tus lotes de USDT (pestaña «Lotes USDT») para comparar con tu costo real.';
-    }
-    aviso('', true);
-  } catch (e) { aviso(e.message, false); }
+function pintarDestino() {
+  const op = $('destino').selectedOptions[0];
+  $('destinoNombre').textContent = $('destino').value ? op.textContent.replace(/^Grupo: /, '') : (window.destinoGuardado ? 'tu grupo guardado' : 'ningún grupo (elígelo en Ajustes)');
   actualizarBoton();
 }
 
-function actualizarBoton() {
-  $('btnEnviar').disabled = !($('mensaje').value.trim() && $('destino').value);
-}
-
-let t;
-for (const id of ['usdBrl', 'cupUsd', 'turno']) {
-  $(id).addEventListener('input', () => { clearTimeout(t); t = setTimeout(calcular, 250); });
-}
-$('mensaje').addEventListener('input', actualizarBoton);
 $('destino').addEventListener('change', async () => {
   window.destinoGuardado = $('destino').value;
-  actualizarBoton();
-  try { await api('/api/config', { destinoId: $('destino').value }); } catch {}
+  pintarDestino();
+  try { await api('/api/config', { destinoId: $('destino').value }); toast('Grupo guardado'); } catch (e) { toast(e.message, false); }
 });
 $('btnDestinos').onclick = cargarDestinos;
 
@@ -549,6 +730,61 @@ $('btnEvo').onclick = async () => {
   } catch (e) { $('wa').textContent = e.message; $('wa').className = 'estado error'; }
 };
 
+// ===================== TASA DEL DÍA =====================
+function turnoAuto() {
+  const h = new Date().getHours();
+  $('turno').value = h < 12 ? 'Mañana' : h < 18 ? 'Tarde' : 'Noche';
+}
+
+async function calcular() {
+  const usdBrl = parseFloat($('usdBrl').value), cupUsd = parseFloat($('cupUsd').value);
+  if (!(usdBrl > 0) || !(cupUsd > 0)) {
+    $('res').hidden = $('resLote').hidden = $('avisoLote').hidden = true; $('resVacio').hidden = false;
+    ultimoCalculo = null; actualizarBoton(); return;
+  }
+  try {
+    const r = await api('/api/calcular', { usdBrl, cupUsd, turno: $('turno').value });
+    $('kTasa').textContent = fmt(r.tasaCup, 1) + ' CUP';
+    $('kPeq').textContent = fmt(r.tasaPequena, 1) + ' CUP';
+    $('kPeqTxt').textContent = `Envíos de menos de ${configActual.tarifa?.umbralBrl ?? 100} BRL`;
+    $('kEq').textContent = fmt(r.equilibrio, 2) + ' CUP';
+    $('res').hidden = false; $('resVacio').hidden = true;
+    $('mensaje').value = r.mensaje;
+    ultimoCalculo = { tasaCup: r.tasaCup, tasaPequena: r.tasaPequena, usdBrl, cupUsd, turno: $('turno').value };
+    // Comparación con lo que de verdad costó el USDT del lote activo.
+    $('resLote').hidden = !r.lote;
+    const av = $('avisoLote');
+    if (r.lote) {
+      $('kLoteEq').textContent = fmt(r.lote.equilibrio, 2) + ' CUP';
+      $('kLoteEqTxt').textContent = `Equilibrio con el lote ${r.lote.codigo} (R$ ${fmt(r.lote.costo, 4)}/USDT)`;
+      $('kLoteSug').textContent = fmt(r.lote.sugerida, 1) + ' CUP';
+      const pierde = r.tasaCup > r.lote.equilibrio;
+      av.hidden = false;
+      av.className = 'estado ' + (pierde ? 'error' : 'listo');
+      av.textContent = pierde
+        ? `⚠️ Con ${fmt(r.tasaCup, 1)} CUP pierdes dinero con el lote ${r.lote.codigo}: no des más de ${fmt(r.lote.equilibrio, 2)}.`
+        : `✅ Con ${fmt(r.tasaCup, 1)} CUP ganas ${fmt((1 - r.tasaCup / r.lote.equilibrio) * 100, 1)} % sobre el costo real del lote ${r.lote.codigo}.`;
+    } else if (r.avisoDb) {
+      av.hidden = false; av.className = 'estado error'; av.textContent = `No se pudo leer tus lotes: ${r.avisoDb}`;
+    } else {
+      av.hidden = false; av.className = 'estado'; av.textContent = 'Registra tus lotes de USDT para comparar con tu costo real.';
+    }
+    aviso('', true);
+  } catch (e) { aviso(e.message, false); }
+  actualizarBoton();
+}
+
+function actualizarBoton() {
+  $('btnFijar').disabled = !ultimoCalculo;
+  $('btnEnviar').disabled = !(ultimoCalculo && $('mensaje').value.trim() && $('destino').value);
+}
+
+let tCalc;
+for (const id of ['usdBrl', 'cupUsd', 'turno']) {
+  $(id).addEventListener('input', () => { clearTimeout(tCalc); tCalc = setTimeout(calcular, 250); });
+}
+$('mensaje').addEventListener('input', actualizarBoton);
+
 $('btnRef').onclick = async () => {
   $('refInfo').textContent = 'Consultando…';
   try {
@@ -559,36 +795,42 @@ $('btnRef').onclick = async () => {
   } catch (e) { $('refInfo').textContent = e.message; }
 };
 
-$('btnGuardar').onclick = async () => {
-  // La comisión en USD ya no se anuncia ni se edita: se conserva el valor guardado.
-  const s = { ...supuestosGuardados };
-  document.querySelectorAll('#supuestos input').forEach((i) => { s[i.dataset.k] = +(parseFloat(i.value) / 100).toFixed(6); });
-  const t = {};
-  document.querySelectorAll('#tarifa input').forEach((i) => { t[i.dataset.t] = parseFloat(i.value); });
+// Qué pasó con el aviso al bot al guardar una tasa.
+function textoBot(n) {
+  if (!n || n.motivo === 'no es la tasa más reciente') return { ok: true, texto: '' };
+  if (n.ok) return { ok: true, texto: auto ? `El bot la publicará ${proximoTurno(auto.horarios).texto}.` : 'El bot ya la tiene.' };
+  if (n.motivo === 'sin configurar') return { ok: false, texto: 'El envío automático no está configurado en este servidor.' };
+  return { ok: false, texto: `El bot no la recibió (${n.motivo}). Usa «Reenviar última tasa al bot».` };
+}
+
+$('btnFijar').onclick = async () => {
+  if (!ultimoCalculo) return;
+  $('btnFijar').disabled = true;
+  $('btnFijar').textContent = 'Fijando y avisando al bot…';
   try {
-    const nuevo = await api('/api/config', { supuestos: s, tarifa: t, enlace: $('enlace').value, alertaUsdt: parseFloat($('alertaUsdt').value) });
-    supuestosGuardados = nuevo.supuestos;
-    configActual = { ...configActual, ...nuevo };
-    cargarErp();
-    avisoAjustes('✅ Guardado ' + new Date().toLocaleTimeString(), true);
-    calcular();
-  } catch (e) { avisoErrorAjustes(e); }
+    const r = await guardarEn('tasas', { ...ultimoCalculo, fecha: hoyIso(), notas: 'Fijada en el panel' });
+    const b = textoBot(r.n8nTasa);
+    aviso(`✅ Tasa ${fmt(ultimoCalculo.tasaCup, 1)} fijada. ${b.texto}`, b.ok);
+    toast(`Tasa ${fmt(ultimoCalculo.tasaCup, 1)} fijada. ${b.texto}`, b.ok);
+    cargarAutomatico();
+  } catch (e) { aviso(e.message, false); }
+  $('btnFijar').textContent = 'Fijar como tasa vigente';
+  actualizarBoton();
 };
-function avisoErrorAjustes(e) { avisoAjustes(e.message.replace(/\(ej\. 0\.03 = 3%\)/, ''), false); }
 
 $('btnEnviar').onclick = async () => {
-  const nombre = $('destino').selectedOptions[0].textContent;
-  if (!confirm(`¿Enviar este mensaje a «${nombre}»?`)) return;
+  if (!confirm(`¿Publicar ahora la tasa ${fmt(ultimoCalculo.tasaCup, 1)} en «${$('destinoNombre').textContent}»?\nTambién queda fijada como tasa vigente para los turnos automáticos.`)) return;
   $('btnEnviar').disabled = true;
   try {
     await api('/api/enviar', { destinoId: $('destino').value, mensaje: $('mensaje').value });
-    aviso('✅ Enviado ' + new Date().toLocaleTimeString(), true);
-    if (ultimoCalculo) {
-      try {
-        await guardarEn('tasas', { ...ultimoCalculo, fecha: hoyIso(), notas: 'Enviada por WhatsApp' });
-        aviso('✅ Enviado y registrado en «Tasas publicadas» ' + new Date().toLocaleTimeString(), true);
-      } catch {}
-    }
+    aviso('✅ Publicada ' + new Date().toLocaleTimeString(), true);
+    try {
+      const r = await guardarEn('tasas', { ...ultimoCalculo, fecha: hoyIso(), notas: 'Publicada por WhatsApp' });
+      const b = textoBot(r.n8nTasa);
+      aviso(`✅ Publicada y fijada como vigente. ${b.texto}`, b.ok);
+      toast(`Publicada en WhatsApp. ${b.texto}`, b.ok);
+      cargarAutomatico();
+    } catch (e) { aviso(`Publicada, pero no se pudo registrar: ${e.message}`, false); }
   } catch (e) { aviso(e.message, false); }
   actualizarBoton();
 };
@@ -621,7 +863,7 @@ function dibujarGrafico() {
     `<text x="${m.l}" y="${H - 6}" font-size="11" fill="currentColor" opacity=".7">${fecha(filas[0].t)}</text>` +
     `<text x="${W - m.r}" y="${H - 6}" text-anchor="end" font-size="11" fill="currentColor" opacity=".7">${fecha(filas.at(-1).t)}</text>`;
   svg.style.color = getComputedStyle(document.body).color;
-  document.querySelectorAll('[data-rango]').forEach((b) => { b.style.fontWeight = b.dataset.rango === rango ? '800' : '600'; b.style.borderColor = b.dataset.rango === rango ? 'var(--azul)' : ''; });
+  document.querySelectorAll('[data-rango]').forEach((b) => { b.style.borderColor = b.dataset.rango === rango ? 'var(--marca)' : ''; b.style.color = b.dataset.rango === rango ? 'var(--link)' : ''; });
 }
 
 async function cargarMercado() {
@@ -638,16 +880,117 @@ async function cargarMercado() {
     const icono = { subir: '🔺 Tendencia a SUBIR', bajar: '🔻 Tendencia a BAJAR', lateral: '➖ Mercado LATERAL' }[s.direccion];
     const caja = $('senal');
     caja.hidden = false;
-    caja.innerHTML = `<b>${icono}</b> · confianza ${s.confianza}` +
-      `<ul style="margin:6px 0 0;padding-left:18px">${s.razones.map((r) => `<li>${r.replace(/</g, '&lt;')}</li>`).join('')}</ul>` +
-      `<p style="margin:8px 0 0">${mercado.implicacion}</p>`;
-    $('mercadoInfo').textContent = 'Actualizado ' + new Date(mercado.actualizado).toLocaleTimeString();
+    caja.innerHTML = `<b>${icono}</b> · confianza ${esc(s.confianza)}` +
+      `<ul style="margin:6px 0 0;padding-left:18px">${s.razones.map((r) => `<li>${esc(r)}</li>`).join('')}</ul>` +
+      `<p style="margin:8px 0 0">${esc(mercado.implicacion)}</p>`;
+    $('mercadoInfo').textContent = 'Binance · actualizado ' + new Date(mercado.actualizado).toLocaleTimeString();
     dibujarGrafico();
   } catch (e) { $('mercadoInfo').textContent = e.message; }
 }
 
 document.querySelectorAll('[data-rango]').forEach((b) => { b.onclick = () => { rango = b.dataset.rango; dibujarGrafico(); }; });
 $('btnMercado').onclick = cargarMercado;
+
+$('btnGuardar').onclick = async () => {
+  // La comisión en USD ya no se anuncia ni se edita: se conserva el valor guardado.
+  const s = { ...supuestosGuardados };
+  document.querySelectorAll('#supuestos input').forEach((i) => { s[i.dataset.k] = +(parseFloat(i.value) / 100).toFixed(6); });
+  const t = {};
+  document.querySelectorAll('#tarifa input').forEach((i) => { t[i.dataset.t] = parseFloat(i.value); });
+  try {
+    const nuevo = await api('/api/config', { supuestos: s, tarifa: t, enlace: $('enlace').value, alertaUsdt: parseFloat($('alertaUsdt').value) });
+    supuestosGuardados = nuevo.supuestos;
+    configActual = { ...configActual, ...nuevo };
+    cargarErp();
+    avisoAjustes('✅ Guardado ' + new Date().toLocaleTimeString(), true);
+    toast('Ajustes guardados. La próxima tasa que fijes ya los usa.');
+    calcular();
+  } catch (e) { avisoAjustes(e.message.replace(/\(ej\. 0\.03 = 3%\)/, ''), false); }
+};
+
+// ===================== ENVÍO AUTOMÁTICO =====================
+let auto = null;
+async function cargarAutomatico() {
+  try { auto = await api('/api/automatico'); } catch (e) { auto = { error: e.message }; }
+  pintarAutomatico();
+}
+
+function proximoTurno(horarios) {
+  const [h, m] = new Intl.DateTimeFormat('en-GB', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', hour12: false })
+    .format(new Date()).split(':').map(Number);
+  const ahora = (h % 24) * 60 + m;
+  const mins = horarios.map((x) => { const [a, b] = x.split(':').map(Number); return a * 60 + b; });
+  let i = mins.findIndex((x) => x > ahora), manana = false;
+  if (i < 0) { i = 0; manana = true; }
+  const faltan = (mins[i] - ahora + 1440) % 1440;
+  const en = faltan >= 60 ? `${Math.floor(faltan / 60)} h ${faltan % 60} min` : `${faltan} min`;
+  return { hora: horarios[i], texto: `${manana ? 'mañana' : 'hoy'} a las ${horarios[i]} (en ${en})` };
+}
+const fechaHora = (iso) => (iso ? new Date(iso).toLocaleString('es', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '');
+const linea = (tipo, titulo, detalle = '', boton = false) => `<div class="linea ${tipo}"><i></i><div><b>${titulo}</b>${detalle ? `<span>${detalle}</span>` : ''}` +
+  `${boton ? '<button class="mini sec" data-reenviar>Reenviar última tasa al bot</button>' : ''}</div></div>`;
+
+function pintarAutomatico() {
+  const ut = libro?.calculo.resumen.ultimaTasa;
+  let html, chip;
+  if (!auto) { html = '<p class="nota">Consultando el bot…</p>'; chip = ['', 'Envío automático']; }
+  else if (auto.error) { html = linea('err', 'No se pudo consultar', esc(auto.error)); chip = ['err', 'Envío automático: error']; }
+  else if (!auto.configurado) {
+    html = linea('av', 'Sin configurar en este servidor', 'Faltan las variables N8N_TASA_URL y N8N_TASA_TOKEN. Mientras tanto, publica con «Fijar y publicar ahora».');
+    chip = ['av', 'Envío automático sin configurar'];
+  } else {
+    const b = auto.bot, p = proximoTurno(auto.horarios), filas = [];
+    if (!b.ok) { filas.push(linea('err', 'El bot no responde', esc(b.motivo))); chip = ['err', 'Bot sin respuesta']; }
+    else if (!b.tasa) {
+      filas.push(linea('err', 'El bot no tiene tasa', `No publicará ${p.texto}. Fija la tasa del día${ut ? ' o reenvía la última' : ''}.`, !!ut));
+      chip = ['err', 'Bot sin tasa'];
+    } else if (ut && (b.tasa.tasaCup !== ut.tasaCup)) {
+      filas.push(linea('av', `El bot tiene ${num(b.tasa.tasaCup, 1)} y tu última tasa es ${num(ut.tasaCup, 1)}`, 'Reenvíala para que publique la correcta.', true));
+      chip = ['av', 'Bot desactualizado'];
+    } else {
+      filas.push(linea('ok', `Publicará 1 BRL = ${num(b.tasa.tasaCup, 1)} CUP ${p.texto}`, `Recibida ${fechaHora(b.tasa.guardada)}`));
+      chip = ['ok', 'Envío automático activo'];
+    }
+    if (b.ok && b.tasa && !b.tasa.usdBrl) filas.push(linea('av', 'Sin USD/BRL de referencia', 'El bot no puede detectar un cambio fuerte del dólar. Fija la tasa con el USD/BRL lleno.'));
+    if (b.ok && b.ultimoEstado) {
+      const raro = /pausado|sin tasa/.test(b.ultimoEstado);
+      const txt = b.ultimoEstado.charAt(0).toUpperCase() + b.ultimoEstado.slice(1);
+      filas.push(linea(raro ? 'av' : 'ok', `Último turno · ${fechaHora(b.ultimoTurno)}`, esc(txt)));
+    }
+    const yaHayBoton = filas.some((f) => f.includes('data-reenviar'));
+    if (auto.ultimoAviso && !auto.ultimoAviso.ok) filas.push(linea('err', 'El último aviso al bot falló', `${esc(auto.ultimoAviso.motivo)} · ${fechaHora(auto.ultimoAviso.cuando)}`, !!ut && !yaHayBoton));
+    filas.push(linea('', 'Regla de seguridad', `Si el dólar se mueve más de ${num(auto.umbralCambio * 100, 0)} % desde que fijaste la tasa, el bot no publica y te avisa por WhatsApp.`));
+    html = filas.join('');
+  }
+  document.querySelectorAll('.autoEstado').forEach((c) => { c.innerHTML = html; });
+  ponerChip('chipBot', chip[0], chip[1]);
+}
+
+document.addEventListener('click', async (ev) => {
+  const b = ev.target.closest('[data-reenviar]');
+  if (!b) return;
+  b.disabled = true;
+  try { const r = await api('/api/automatico/reenviar', {}); toast(`Tasa ${num(r.tasaCup, 1)} reenviada al bot`); }
+  catch (e) { toast(e.message, false); }
+  cargarAutomatico();
+});
+
+const pequenaDe = (t) => (Number.isFinite(t.tasaPequena) ? t.tasaPequena
+  : Math.max(Math.floor((t.tasaCup - (configActual.tarifa?.restaCup ?? 0)) * 2) / 2, 0));
+
+function pintarTasaVigente() {
+  const r = libro.calculo.resumen, ut = r.ultimaTasa, tf = configActual.tarifa || {};
+  let margen = '';
+  if (r.margenTasa !== null && r.margenTasa !== undefined && r.loteActivo) {
+    margen = r.margenTasa < 0 ? `<span class="tag err">Pierde con el lote ${esc(r.loteActivo.codigo)}</span>`
+      : `<span class="tag ok">Margen ${pct(r.margenTasa)} sobre el lote ${esc(r.loteActivo.codigo)}</span>`;
+  }
+  const html = !ut ? '<div class="vacio">Todavía no hay tasa fijada.<br><button data-ir="tasas">Calcular la tasa del día</button></div>'
+    : `<div class="tasa-grande">1 BRL = ${num(ut.tasaCup, 1)} <small>CUP</small></div>` +
+      `<div class="tasa-sub">Menos de ${num(tf.umbralBrl ?? 100, 0)} BRL: <b>${num(pequenaDe(ut), 1)} CUP</b> · mínimo ${num(tf.montoMinimoBrl ?? 20, 0)} BRL</div>` +
+      `<div class="tasa-meta"><span class="tag">Fijada ${fechaCorta(ut.fecha)} · ${esc(ut.turno)}</span>${ut.usdBrl ? `<span class="tag">USD/BRL ${num(ut.usdBrl, 4)}</span>` : '<span class="tag av">Sin USD/BRL</span>'}${margen}</div>`;
+  document.querySelectorAll('.tasaVigente').forEach((c) => { c.innerHTML = html; });
+}
 
 // ===================== ERP =====================
 let configActual = { tarifa: { umbralBrl: 100 } }, ultimoCalculo = null, libro = null;
@@ -674,10 +1017,11 @@ async function cargarErp() {
     try { pintarDb(await api('/api/db'), e.message); } catch {}
   }
 }
+// Devuelve la respuesta completa (incluye si el bot recibió la tasa).
 async function guardarEn(coleccion, item) {
   const r = await api('/api/erp/guardar', { coleccion, item });
   libro = r; pintarTodo(); pintarDb(r.db);
-  return r.item;
+  return r;
 }
 
 // ---- base de datos ----
@@ -688,14 +1032,14 @@ function pintarDb(db, error) {
     caja.textContent = (error ? `⚠️ Supabase no responde: ${error}` : '✅ Conectado a Supabase') + ` (${db.url})` + (db.desdeEntorno ? ' · definido en el servidor' : '');
   } else {
     caja.className = 'estado';
-    caja.textContent = '📁 Guardando en el archivo local erp.json. Conecta Supabase para tener los datos en la nube.';
+    caja.textContent = '📁 Guardando en el archivo erp.json del servidor. Conecta Supabase para tener los datos en la nube.';
   }
   if (db.url) $('dbUrl').value = db.url;
   $('dbKeyNota').textContent = db.tieneKey ? '(ya guardada; déjala vacía para conservarla)' : '';
   $('btnDbDesc').hidden = $('btnDbSubir').hidden = db.modo !== 'supabase' || db.desdeEntorno;
   $('btnDb').disabled = !!db.desdeEntorno;
-  $('modoDb').textContent = db.modo === 'supabase' ? '💾 Supabase' : '📁 Archivo local';
-  if (db.modo !== 'supabase' && !$('dbDet').dataset.visto) { $('dbDet').open = true; $('dbDet').dataset.visto = '1'; }
+  $('modoDb').textContent = db.modo === 'supabase' ? 'Datos en Supabase' : 'Datos en archivo local';
+  ponerChip('chipDb', error ? 'err' : 'ok', db.modo === 'supabase' ? 'Supabase' : 'Archivo local');
 }
 $('btnDb').onclick = async () => {
   msgEn('msgDb', 'Probando conexión…', true);
@@ -720,18 +1064,23 @@ $('btnDbSubir').onclick = async () => {
 };
 async function borrarDe(coleccion, id, texto) {
   if (!confirm(texto)) return;
-  try { libro = await api('/api/erp/borrar', { coleccion, id }); pintarTodo(); } catch (e) { alert(e.message); }
+  try { libro = await api('/api/erp/borrar', { coleccion, id }); pintarTodo(); if (coleccion === 'tasas') cargarAutomatico(); } catch (e) { alert(e.message); }
 }
 
-// ---- pestañas ----
+// ---- secciones ----
 function irA(tab) {
   if (!document.querySelector(`[data-tab="${tab}"]`)) tab = 'inicio';
   document.querySelectorAll('[data-tab]').forEach((d) => { d.hidden = d.dataset.tab !== tab; });
   document.querySelectorAll('#pestanas button').forEach((b) => b.classList.toggle('activa', b.dataset.ir === tab));
+  const boton = document.querySelector(`#pestanas [data-ir="${tab}"]`);
+  $('titulo').textContent = boton.textContent.trim();
+  $('subtitulo').textContent = PAGINAS[tab] || '';
+  document.title = `${boton.textContent.trim()} · Flujo Cuba`;
   if (location.hash !== '#' + tab) history.replaceState(null, '', '#' + tab);
+  boton.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   window.scrollTo(0, 0);
 }
-document.querySelectorAll('[data-ir]').forEach((b) => b.addEventListener('click', () => irA(b.dataset.ir)));
+document.addEventListener('click', (ev) => { const b = ev.target.closest('[data-ir]'); if (b) irA(b.dataset.ir); });
 window.addEventListener('hashchange', () => irA(location.hash.slice(1)));
 
 // ---- formularios (crear / editar) ----
@@ -739,7 +1088,7 @@ function leerForm(f) { const o = {}; for (const el of f.elements) if (el.name) o
 function llenarForm(f, item) { for (const el of f.elements) if (el.name) el.value = item[el.name] ?? ''; }
 function msgEn(id, texto, ok) { $(id).textContent = texto; $(id).className = ok ? 'ok' : 'err'; }
 
-function crud({ coleccion, form, guardar, cancelar, msg, titulo, nuevo, editando, alLimpiar }) {
+function crud({ coleccion, form, guardar, cancelar, msg, titulo, nuevo, editando, alLimpiar, alGuardar }) {
   const f = $(form), textoGuardar = $(guardar).textContent;
   const limpiar = () => {
     f.reset(); f.elements.id.value = '';
@@ -749,8 +1098,11 @@ function crud({ coleccion, form, guardar, cancelar, msg, titulo, nuevo, editando
   };
   $(guardar).onclick = async () => {
     if (!f.reportValidity()) return;
-    try { await guardarEn(coleccion, leerForm(f)); limpiar(); msgEn(msg, '✅ Guardado ' + new Date().toLocaleTimeString(), true); }
-    catch (e) { msgEn(msg, e.message, false); }
+    try {
+      const r = await guardarEn(coleccion, leerForm(f));
+      limpiar(); msgEn(msg, '✅ Guardado ' + new Date().toLocaleTimeString(), true);
+      if (alGuardar) alGuardar(r);
+    } catch (e) { msgEn(msg, e.message, false); }
   };
   $(cancelar).onclick = () => { limpiar(); msgEn(msg, '', true); };
   f.addEventListener('submit', (e) => { e.preventDefault(); $(guardar).click(); });
@@ -759,6 +1111,7 @@ function crud({ coleccion, form, guardar, cancelar, msg, titulo, nuevo, editando
     $(cancelar).hidden = false; $(guardar).textContent = 'Guardar cambios';
     if (titulo) $(titulo).textContent = editando;
     msgEn(msg, '', true);
+    const d = f.closest('details'); if (d) d.open = true;
     f.scrollIntoView({ behavior: 'smooth', block: 'center' });
   };
   return { limpiar, editar };
@@ -767,7 +1120,8 @@ function crud({ coleccion, form, guardar, cancelar, msg, titulo, nuevo, editando
 // Gráfico de barras simple (verde = ganancia, rojo = pérdida).
 function barras(svg, items, alto = 200) {
   const W = 700, H = alto, m = { l: 62, r: 8, t: 12, b: 26 };
-  if (!items.length) { svg.innerHTML = `<text x="350" y="${H / 2}" text-anchor="middle" fill="currentColor" opacity=".6" font-size="13">Sin datos todavía</text>`; return; }
+  svg.style.color = getComputedStyle(document.body).color;
+  if (!items.some((i) => i.valor)) { svg.innerHTML = `<text x="350" y="${H / 2}" text-anchor="middle" fill="currentColor" opacity=".6" font-size="13">Sin datos todavía</text>`; return; }
   const vals = items.map((i) => i.valor);
   const max = Math.max(0, ...vals), min = Math.min(0, ...vals), rango = max - min || 1;
   const y = (v) => m.t + ((max - v) / rango) * (H - m.t - m.b);
@@ -779,17 +1133,16 @@ function barras(svg, items, alto = 200) {
   items.forEach((it, i) => {
     const ancho = Math.min(bw * 0.7, 56), x = m.l + i * bw + (bw - ancho) / 2;
     const top = Math.min(y(it.valor), y(0)), h = Math.max(Math.abs(y(it.valor) - y(0)), it.valor ? 1 : 0);
-    s += `<rect x="${x.toFixed(1)}" y="${top.toFixed(1)}" width="${ancho.toFixed(1)}" height="${h.toFixed(1)}" rx="2" fill="${it.valor < 0 ? '#E8283A' : '#1a8a4a'}"><title>${esc(it.etiqueta)}: ${brl(it.valor)}</title></rect>`;
+    s += `<rect x="${x.toFixed(1)}" y="${top.toFixed(1)}" width="${ancho.toFixed(1)}" height="${h.toFixed(1)}" rx="3" fill="${it.valor < 0 ? '#E8283A' : '#1a8a4a'}"><title>${esc(it.etiqueta)}: ${brl(it.valor)}</title></rect>`;
     if (it.valor) s += `<text x="${(x + ancho / 2).toFixed(1)}" y="${(top - 4).toFixed(1)}" text-anchor="middle" font-size="10" fill="currentColor" opacity=".8">${num(it.valor, 0)}</text>`;
     if (i % cada === 0) s += `<text x="${(x + ancho / 2).toFixed(1)}" y="${H - 8}" text-anchor="middle" font-size="11" fill="currentColor" opacity=".7">${esc(it.corta)}</text>`;
   });
   svg.innerHTML = s;
-  svg.style.color = getComputedStyle(document.body).color;
 }
 
 const tabla = (id, cabecera, filas, pie = '') => {
   $(id).innerHTML = `<thead><tr>${cabecera.map(([t, n]) => `<th class="${n ? 'n' : ''}">${t}</th>`).join('')}</tr></thead>` +
-    `<tbody>${filas.join('') || `<tr><td colspan="${cabecera.length}" class="nota">Nada todavía</td></tr>`}</tbody>${pie ? `<tfoot>${pie}</tfoot>` : ''}`;
+    `<tbody>${filas.join('') || `<tr><td colspan="${cabecera.length}" class="nota" style="text-align:center;padding:18px">Nada todavía</td></tr>`}</tbody>${pie ? `<tfoot>${pie}</tfoot>` : ''}`;
 };
 const acc = (col, id, ...quien) => quien.map((q) => ({
   entregar: `<button class="mini" data-acc="entregar" data-col="${col}" data-id="${id}" title="Marcar entregado">✓ Entregado</button>`,
@@ -810,13 +1163,12 @@ function pintarInicio() {
     kpi(brl(r.ganancia), 'Ganancia total', color(r.ganancia), `${r.envios} envíos · margen ${pct(r.margen)}`),
     kpi(brl(r.brl), 'BRL cobrados (total)', '', `${num(r.cup, 0)} CUP entregados`),
   ].join('');
-  const la = r.loteActivo, ut = r.ultimaTasa;
+  const la = r.loteActivo;
   $('iFondo').innerHTML = [
     kpi(num(r.usdtDisponibles), 'USDT disponibles', r.usdtDisponibles < r.alertaUsdt ? 'rojo' : '', `Valen ${brl(r.valorSaldo)}`),
-    kpi(la ? esc(la.codigo) : '–', 'Lote activo', '', la ? `Costo R$ ${num(la.costo, 4)} · quedan ${num(la.disponibles)} USDT` : 'Sin fondo'),
-    kpi(la ? num(la.equilibrio) : '–', 'Equilibrio (no dar más)', '', 'CUP por 1 BRL'),
+    kpi(la ? esc(la.codigo) : '–', 'Lote activo', '', la ? `R$ ${num(la.costo, 4)}/USDT · quedan ${num(la.disponibles)}` : 'Sin fondo'),
+    kpi(la ? num(la.equilibrio) : '–', 'Equilibrio del lote', '', 'No dar más por 1 BRL'),
     kpi(la ? num(la.sugerida, 1) : '–', 'Tasa sugerida', 'verde', 'CUP por 1 BRL'),
-    kpi(ut ? num(ut.tasaCup, 1) : '–', 'Última tasa publicada', r.margenTasa < 0 ? 'rojo' : '', ut ? `${fechaCorta(ut.fecha)} ${esc(ut.turno)} · margen ${pct(r.margenTasa)}` : 'Regístrala en Tasas'),
     kpi(num(r.socio.saldo, 0), 'CUP libres con el socio', r.socio.saldo < 0 ? 'rojo' : '', `Pendiente de entregar: ${num(r.socio.pendiente, 0)}`),
   ].join('');
   $('iAlertas').innerHTML = c.alertas.length
@@ -834,17 +1186,19 @@ function pintarInicio() {
       `<td class="n">${num(e.tasa, 1)}</td><td class="n ${signo(e.ganancia)}">${brl(e.ganancia)}</td><td>${tagEstado(e.estado)}</td></tr>`));
 }
 
-// ---- TASAS PUBLICADAS ----
+// ---- HISTORIAL DE TASAS ----
 const formTasa = crud({ coleccion: 'tasas', form: 'fTasa', guardar: 'btnTasaGuardar', cancelar: 'btnTasaCancelar', msg: 'msgTasa',
-  alLimpiar: () => { $('fTasa').elements.fecha.value = hoyIso(); $('fTasa').elements.turno.value = $('turno').value; } });
+  alLimpiar: () => { $('fTasa').elements.fecha.value = hoyIso(); $('fTasa').elements.turno.value = $('turno').value; },
+  alGuardar: (r) => { const b = textoBot(r.n8nTasa); if (b.texto) toast(b.texto, b.ok); cargarAutomatico(); } });
 $('btnTasaCalc').onclick = () => {
-  if (!ultimoCalculo) return msgEn('msgTasa', 'Primero calcula la tasa en «2 · Datos del turno»', false);
+  if (!ultimoCalculo) return msgEn('msgTasa', 'Primero calcula la tasa arriba (paso 1)', false);
   llenarForm($('fTasa'), { ...ultimoCalculo, fecha: hoyIso(), notas: '' });
   msgEn('msgTasa', 'Revisa y pulsa «Registrar tasa»', true);
 };
 function pintarTasas() {
+  const vigente = libro.calculo.tasas[0]?.id;
   tabla('tTasas', [['Fecha'], ['Turno'], ['Tasa', 1], ['Pequeña', 1], ['USD/BRL', 1], ['CUP/USD', 1], ['Notas'], ['']],
-    libro.calculo.tasas.map((t) => `<tr><td>${fechaCorta(t.fecha)}</td><td>${esc(t.turno)}</td><td class="n"><b>${num(t.tasaCup, 1)}</b></td>` +
+    libro.calculo.tasas.map((t) => `<tr><td>${fechaCorta(t.fecha)}${t.id === vigente ? ' <span class="tag ok">Vigente</span>' : ''}</td><td>${esc(t.turno)}</td><td class="n"><b>${num(t.tasaCup, 1)}</b></td>` +
       `<td class="n">${num(t.tasaPequena, 1)}</td><td class="n">${num(t.usdBrl, 4)}</td><td class="n">${num(t.cupUsd, 0)}</td><td>${esc(t.notas)}</td>` +
       `<td>${acc('tasas', t.id, 'editar', 'borrar')}</td></tr>`));
 }
@@ -859,7 +1213,7 @@ const formEnvio = crud({ coleccion: 'envios', form: 'fEnvio', guardar: 'btnEnvio
 function tasaPorDefecto(monto) {
   const ut = libro?.calculo.resumen.ultimaTasa;
   if (!ut) return '';
-  return monto > 0 && monto < (configActual.tarifa?.umbralBrl ?? 100) && ut.tasaPequena ? ut.tasaPequena : ut.tasaCup;
+  return monto > 0 && monto < (configActual.tarifa?.umbralBrl ?? 100) ? pequenaDe(ut) : ut.tasaCup;
 }
 fEnvio.elements.tasa.addEventListener('input', () => { tasaManual = true; });
 fEnvio.elements.cliente.addEventListener('change', () => {
@@ -885,7 +1239,7 @@ async function simularEnvio() {
       kpi(brl(e.costo), 'Costo real'),
       kpi(brl(e.ganancia), 'Ganancia', color(e.ganancia), e.ganancia < 0 ? '⚠️ Este envío PIERDE dinero' : ''),
       kpi(pct(e.margen), 'Margen', color(e.margen)),
-    ].join('') + (e.avisos.length ? `<div class="kpi" style="grid-column:1/-1"><span class="err">${e.avisos.map(esc).join(' · ')}</span></div>` : '');
+    ].join('') + (e.avisos.length ? `<div class="kpi" style="grid-column:1/-1"><small class="err">${e.avisos.map(esc).join(' · ')}</small></div>` : '');
     $('ePrevia').hidden = false;
   } catch { $('ePrevia').hidden = true; }
 }
@@ -945,7 +1299,7 @@ function pintarLotes() {
       const usado = Math.min(1, Math.max(0, 1 - l.disponibles / l.usdt));
       return `<tr><td>${fechaCorta(l.fecha)}</td><td><b>${esc(l.codigo)}</b></td><td class="n">${num(l.usdt)}</td><td class="n">${brl(l.brl)}</td>` +
         `<td class="n">R$ ${num(l.costo, 4)}</td><td class="n">${num(l.cupPorUsdt, 0)}</td><td class="n neg">${num(l.equilibrio)}</td><td class="n pos">${num(l.sugerida, 1)}</td>` +
-        `<td title="${pct(usado)}"><div class="barra"><i style="width:${(usado * 100).toFixed(1)}%"></i></div></td><td class="n"><b>${num(l.disponibles)}</b></td>` +
+        `<td title="${pct(usado)}"><div class="barra-uso"><i style="width:${(usado * 100).toFixed(1)}%"></i></div></td><td class="n"><b>${num(l.disponibles)}</b></td>` +
         `<td class="n">${brl(l.valorSaldo)}</td><td class="n">${l.envios}</td><td class="n ${signo(l.ganancia)}">${brl(l.ganancia)}</td><td>${tagEstado(l.estado)}</td>` +
         `<td>${acc('lotes', l.id, 'editar', 'borrar')}</td></tr>`;
     }));
@@ -976,7 +1330,7 @@ function pintarGastos() {
   const g = libro.calculo.gastos;
   tabla('tGastos', [['Fecha'], ['Concepto'], ['Categoría'], ['Monto', 1], ['']],
     g.map((x) => `<tr><td>${fechaCorta(x.fecha)}</td><td>${esc(x.concepto)}</td><td>${esc(x.categoria)}</td><td class="n">${brl(x.montoBrl)}</td><td>${acc('gastos', x.id, 'editar', 'borrar')}</td></tr>`),
-    `<tr><td colspan="3">Total</td><td class="n">${brl(g.reduce((a, x) => a + x.montoBrl, 0))}</td><td></td></tr>`);
+    g.length ? `<tr><td colspan="3">Total</td><td class="n">${brl(g.reduce((a, x) => a + x.montoBrl, 0))}</td><td></td></tr>` : '');
 }
 
 // ---- REPORTES ----
@@ -984,7 +1338,7 @@ function pintarReportes() {
   const c = libro.calculo, meses = c.porMes;
   barras($('rGrafico'), meses.slice(-12).map((m) => ({ valor: m.neto, etiqueta: nombreMes(m.periodo) + ' (utilidad neta)', corta: nombreMes(m.periodo) })), 220);
   const s = (f) => meses.reduce((a, m) => a + f(m), 0);
-  const filaMes = (m, etiqueta) => `<td class="n">${m.envios}</td><td class="n">${brl(m.brl)}</td><td class="n">${num(m.cup, 0)}</td><td class="n">${brl(m.costo)}</td>` +
+  const filaMes = (m) => `<td class="n">${m.envios}</td><td class="n">${brl(m.brl)}</td><td class="n">${num(m.cup, 0)}</td><td class="n">${brl(m.costo)}</td>` +
     `<td class="n ${signo(m.ganancia)}">${brl(m.ganancia)}</td><td class="n">${brl(m.gastos)}</td><td class="n ${signo(m.neto)}"><b>${brl(m.neto)}</b></td>` +
     `<td class="n">${pct(m.margen)}</td><td class="n ${m.perdidas ? 'neg' : ''}">${m.perdidas}</td>`;
   const cab = [['Periodo'], ['Envíos', 1], ['BRL cobrados', 1], ['CUP', 1], ['Costo real', 1], ['Ganancia bruta', 1], ['Gastos', 1], ['Utilidad neta', 1], ['Margen', 1], ['Con pérdida', 1]];
@@ -1006,7 +1360,7 @@ $('rMes').addEventListener('input', pintarReportes);
 // Selects que dependen de los datos (se conserva lo elegido).
 function llenarSelects() {
   const c = libro.calculo, el = fEnvio.elements.lote, elegido = el.value;
-  el.innerHTML = '<option value="">Automático (FIFO)</option>' + c.lotes.map((l) =>
+  el.innerHTML = '<option value="">Automático (el más antiguo con saldo)</option>' + c.lotes.map((l) =>
     `<option value="${esc(l.codigo)}">${esc(l.codigo)} · ${esc(l.estado)} · quedan ${num(l.disponibles)} USDT</option>`).join('');
   el.value = elegido;
   for (const [id, todos] of [['eMes', 'Todos'], ['rMes', 'Todos']]) {
@@ -1018,6 +1372,7 @@ function llenarSelects() {
 
 function pintarTodo() {
   llenarSelects();
+  pintarTasaVigente(); pintarAutomatico();
   pintarInicio(); pintarTasas(); pintarEnvios(); pintarLotes(); pintarClientes(); pintarGastos(); pintarReportes();
 }
 
@@ -1035,7 +1390,7 @@ document.addEventListener('click', async (ev) => {
     const que = { envios: `el envío de ${item.cliente} (${brl(item.montoBrl)})`, lotes: `el lote ${item.codigo}`, gastos: `el gasto «${item.concepto}»`, tasas: `la tasa ${item.tasaCup} del ${fechaCorta(item.fecha)}` }[col];
     borrarDe(col, id, `¿Borrar ${que}? No se puede deshacer.`);
   } else if (a === 'entregar') {
-    try { await guardarEn('envios', { ...item, estado: 'Entregado' }); } catch (e) { alert(e.message); }
+    try { await guardarEn('envios', { ...item, estado: 'Entregado' }); toast(`Envío de ${item.cliente} marcado como entregado`); } catch (e) { alert(e.message); }
   } else if (a === 'copiar') {
     const e = libro.calculo.envios.find((x) => x.id === id);
     const texto = [`Entrega: ${num(e.cup, 0)} CUP`, e.tarjeta && `Tarjeta: ${e.tarjeta}`, e.telefono && `Teléfono: ${e.telefono}`, `Cliente: ${e.cliente}`].filter(Boolean).join('\n');
@@ -1044,15 +1399,15 @@ document.addEventListener('click', async (ev) => {
   }
 });
 
+if (!['localhost', '127.0.0.1'].includes(location.hostname)) document.querySelectorAll('.salir').forEach((a) => { a.hidden = false; });
 formTasa.limpiar(); formEnvio.limpiar(); formGasto.limpiar();
 irA(location.hash.slice(1) || 'inicio');
-cargarErp().then(() => formLote.limpiar());
-
 turnoAuto();
+refrescarEstado(true).then((e) => setTimeout(cicloWa, e === 'listo' ? 30_000 : 4_000));
+cargarErp().then(() => { formLote.limpiar(); cargarAutomatico(); });
+setInterval(cargarAutomatico, 60_000);
 cargarMercado();
 setInterval(cargarMercado, 5 * 60_000);
-refrescarEstado(true);
-setInterval(() => refrescarEstado(false), 3000);
 </script>
 </body>
 </html>
