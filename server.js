@@ -43,13 +43,44 @@ const INDEX = path.join(__dirname, 'public', 'index.html');
 const LOGIN = path.join(__dirname, 'public', 'login.html');
 const entraPorHttps = (req) => req.headers['x-forwarded-proto'] === 'https';
 
+// Con Supabase conectado, los ajustes viven en la tabla «ajustes» (sobreviven a los despliegues del VPS);
+// el archivo config.json queda como copia. La lectura sigue siendo síncrona: se usa la copia en memoria.
+let configRemota = null;
+let ajustesEstado = { en: 'archivo', error: '' };
+let ultimaSincronia = 0;
+
+function leerArchivoConfig() {
+  try { return JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8')); } catch { return {}; }
+}
+
 function leerConfig() {
+  const c = configRemota || leerArchivoConfig();
+  return { destinoId: c.destinoId || '', destinoOpsId: c.destinoOpsId || '', supuestos: { ...DEFAULT_SUPUESTOS, ...c.supuestos }, tarifa: { ...DEFAULT_TARIFA, ...c.tarifa }, enlace: c.enlace || DEFAULT_ENLACE,
+    contacto: c.contacto || '', pix: c.pix || '', alertaUsdt: Number.isFinite(c.alertaUsdt) ? c.alertaUsdt : ALERTA_USDT };
+}
+
+function escribirArchivoConfig(c) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  fs.writeFileSync(CONFIG_PATH, JSON.stringify(c, null, 2));
+}
+
+// Trae los ajustes de Supabase. Si la tabla está vacía, sube los que ya había en el archivo (primera vez).
+async function sincronizarAjustes(forzar = false) {
+  if (!forzar && Date.now() - ultimaSincronia < 10_000) return;
+  ultimaSincronia = Date.now();
+  if (!supabase.configurado()) { configRemota = null; ajustesEstado = { en: 'archivo', error: '' }; return; }
   try {
-    const c = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
-    return { destinoId: c.destinoId || '', destinoOpsId: c.destinoOpsId || '', supuestos: { ...DEFAULT_SUPUESTOS, ...c.supuestos }, tarifa: { ...DEFAULT_TARIFA, ...c.tarifa }, enlace: c.enlace || DEFAULT_ENLACE,
-      contacto: c.contacto || '', pix: c.pix || '', alertaUsdt: Number.isFinite(c.alertaUsdt) ? c.alertaUsdt : ALERTA_USDT };
-  } catch {
-    return { destinoId: '', destinoOpsId: '', supuestos: { ...DEFAULT_SUPUESTOS }, tarifa: { ...DEFAULT_TARIFA }, enlace: DEFAULT_ENLACE, contacto: '', pix: '', alertaUsdt: ALERTA_USDT };
+    let remoto = await supabase.leerAjustes();
+    if (!remoto) {
+      const local = leerArchivoConfig();
+      if (Object.keys(local).length) { await supabase.guardarAjustes(local); remoto = local; }
+    }
+    configRemota = remoto;
+    ajustesEstado = { en: 'supabase', error: '' };
+    if (remoto) { try { escribirArchivoConfig(remoto); } catch {} }
+  } catch (e) {
+    configRemota = null;
+    ajustesEstado = { en: 'archivo', error: e.message };
   }
 }
 
@@ -77,9 +108,18 @@ async function avisarTasaVigente(item) {
   return r;
 }
 
-function guardarConfig(c) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-  fs.writeFileSync(CONFIG_PATH, JSON.stringify(c, null, 2));
+async function guardarConfig(c) {
+  escribirArchivoConfig(c);
+  if (!supabase.configurado()) return;
+  try {
+    await supabase.guardarAjustes(c);
+    configRemota = c;
+    ajustesEstado = { en: 'supabase', error: '' };
+  } catch (e) {
+    configRemota = null; // sin Supabase se usa el archivo recién escrito
+    ajustesEstado = { en: 'archivo', error: e.message };
+    throw new Error(`Se guardó en el servidor, pero no en Supabase: ${e.message}`);
+  }
 }
 
 function validarSupuestos(s) {
@@ -121,7 +161,10 @@ const responder = (res, code, data) => {
 };
 
 const rutas = {
-  'GET /api/estado': async () => ({ whatsapp: await wa.obtenerEstado(), config: leerConfig() }),
+  'GET /api/estado': async () => {
+    await sincronizarAjustes();
+    return { whatsapp: await wa.obtenerEstado(), config: leerConfig(), ajustes: ajustesEstado };
+  },
 
   'POST /api/evolution': async (body) => {
     wa.guardarConf(body);
@@ -215,7 +258,7 @@ const rutas = {
       if (!/^https:\/\/chat\.whatsapp\.com\/[A-Za-z0-9]+$/.test(e)) throw new Error('El enlace debe ser de la forma https://chat.whatsapp.com/…');
       nuevo.enlace = e;
     }
-    guardarConfig(nuevo);
+    await guardarConfig(nuevo);
     return nuevo;
   },
 
@@ -262,11 +305,13 @@ const rutas = {
     const conf = supabase.normalizarConf(body);
     const filas = await supabase.probar(conf); // solo se guarda si la conexión funciona
     supabase.guardarConf(conf);
-    return { ...supabase.estado(), filas };
+    await sincronizarAjustes(true);
+    return { ...supabase.estado(), filas, ajustes: ajustesEstado };
   },
 
   'POST /api/db/desconectar': async () => {
     supabase.borrarConf();
+    await sincronizarAjustes(true);
     return supabase.estado();
   },
 
@@ -332,6 +377,7 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
+sincronizarAjustes(true);
 server.listen(PORT, HOST, () => {
   console.log(`Panel de tasas escuchando en ${HOST}:${PORT}${PANEL_PASSWORD ? ' (con contraseña)' : ''}`);
 });

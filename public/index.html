@@ -588,6 +588,7 @@
             <div style="margin-top:12px"><label for="alertaUsdt">Avisarme cuando queden menos de (USDT)</label><input id="alertaUsdt" type="number" step="1" min="0"></div>
           </section>
         </div>
+        <p class="nota" id="ajustesDonde"></p>
         <div class="guardar-barra">
           <span id="msgAjustes"></span>
           <button id="btnGuardar">Guardar ajustes</button>
@@ -736,7 +737,9 @@ function dibujarTarifa(t) {
 let conectadoAntes = false, waEstado = '';
 async function refrescarEstado(inicial) {
   try {
-    const { whatsapp: w, config } = await api('/api/estado');
+    const { whatsapp: w, config, ajustes } = await api('/api/estado');
+    $('ajustesDonde').textContent = ajustes?.en === 'supabase' ? '☁️ Estos ajustes se guardan en Supabase: sobreviven a los despliegues.'
+      : '📁 Estos ajustes se guardan en un archivo del servidor.' + (ajustes?.error ? ' ⚠️ Supabase: ' + ajustes.error : ' Con Supabase conectado se guardarían en la nube.');
     const caja = $('wa');
     const etiquetas = { sin_configurar: 'Falta conectar con Evolution API (abre «Datos de conexión»)', iniciando: 'Iniciando WhatsApp…', qr: 'Escanea el QR: WhatsApp → Dispositivos vinculados → Vincular',
       autenticando: 'Autenticando…', listo: '✅ WhatsApp conectado', desconectado: 'Desconectado', error: 'Error' };

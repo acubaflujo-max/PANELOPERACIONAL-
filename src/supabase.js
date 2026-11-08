@@ -79,6 +79,7 @@ async function llamar(conf, metodo, ruta, { cuerpo, prefer } = {}) {
     if (json?.code === '42501' || /permission denied/i.test(msg)) msg = 'esa clave no tiene acceso: usa la clave SECRETA del proyecto (no la pública)';
     else if (r.status === 401) msg = 'clave inválida';
     else if (json?.code === '23503') msg = 'ese lote tiene envíos asignados';
+    else if (json?.code === 'PGRST205') msg = 'falta crear la tabla «ajustes» en Supabase (el SQL está en el README)';
     else if (json?.code === '23505') msg = 'ya existe un registro con ese código';
     const e = new Error(`Supabase: ${msg}`);
     e.status = r.status;
@@ -136,6 +137,18 @@ async function borrarFila(coleccion, id, conf = leerConf()) {
   await llamar(conf, 'DELETE', `${coleccion}?id=eq.${encodeURIComponent(id)}`, { prefer: 'return=minimal' });
 }
 
+// Ajustes del panel (supuestos, tramos, enlace…): una sola fila clave=config con todo en JSON.
+async function leerAjustes(conf = leerConf()) {
+  const filas = await llamar(conf, 'GET', 'ajustes?clave=eq.config&select=valor');
+  return filas?.[0]?.valor ?? null;
+}
+
+async function guardarAjustes(valor, conf = leerConf()) {
+  await llamar(conf, 'POST', 'ajustes?on_conflict=clave', {
+    cuerpo: [{ clave: 'config', valor, actualizado: new Date().toISOString() }], prefer: 'resolution=merge-duplicates,return=minimal',
+  });
+}
+
 // Comprueba URL y clave antes de guardarlas. Devuelve cuántas filas hay en cada tabla.
 async function probar(conf) {
   const datos = await leerTodo(conf);
@@ -147,4 +160,4 @@ function estado() {
   return { modo: c.url && c.key ? 'supabase' : 'local', url: c.url, tieneKey: !!c.key, desdeEntorno: DESDE_ENTORNO };
 }
 
-module.exports = { TABLAS, configurado, estado, normalizarConf, guardarConf, borrarConf, leerTodo, guardarFilas, borrarFila, probar, aFila, deFila };
+module.exports = { TABLAS, configurado, estado, normalizarConf, guardarConf, borrarConf, leerTodo, guardarFilas, borrarFila, leerAjustes, guardarAjustes, probar, aFila, deFila };

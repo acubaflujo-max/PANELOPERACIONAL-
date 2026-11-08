@@ -29,6 +29,18 @@ La URL y la apikey se guardan en `%LOCALAPPDATA%\FlujoBot\evolution.json` (fuera
   «Probar y conectar». Se guarda en `%LOCALAPPDATA%\FlujoBot\supabase.json` (fuera de Drive). «Desconectar» vuelve a `erp.json`.
 - En el VPS/Docker: variables de entorno `SUPABASE_URL` y `SUPABASE_SECRET_KEY` (el panel no las puede cambiar).
 - Con Supabase conectado, el panel guarda una copia diaria en `erp-respaldos/supabase-AAAA-MM-DD.json` (el plan gratuito no tiene respaldos).
+- **Ajustes en Supabase**: con la base conectada, los ajustes (supuestos, tramos, enlace, PIX, grupos) se guardan en la tabla
+  `ajustes` y sobreviven a los despliegues. Créala una vez en Supabase → SQL Editor; si no existe, el panel usa `config.json` y lo avisa en Ajustes:
+  ```sql
+  create table if not exists public.ajustes (
+    clave text primary key,
+    valor jsonb not null,
+    actualizado timestamptz not null default now()
+  );
+  alter table public.ajustes enable row level security;
+  revoke all on public.ajustes from anon, authenticated;
+  ```
+  La primera vez que se conecta, sube los ajustes que ya había en el archivo.
 - «Subir datos del archivo local» copia `erp.json` a Supabase (actualiza por id, no borra nada).
 
 ## Envío automático de la tasa (n8n)
