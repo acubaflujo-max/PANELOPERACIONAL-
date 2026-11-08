@@ -1,7 +1,10 @@
 FROM node:22-alpine
-RUN apk add --no-cache su-exec
+# Fuentes para dibujar la imagen de la tasa en el servidor (@napi-rs/canvas).
+RUN apk add --no-cache su-exec fontconfig ttf-dejavu
 WORKDIR /app
-COPY package.json server.js ./
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
+COPY server.js ./
 COPY src ./src
 COPY public ./public
 ENV HOST=0.0.0.0 PORT=3030 FLUJOBOT_DATA=/data

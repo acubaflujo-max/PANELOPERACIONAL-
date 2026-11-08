@@ -41,6 +41,8 @@ let fallos = 0;
 setInterval(() => { fallos = 0; }, 60_000).unref();
 const INDEX = path.join(__dirname, 'public', 'index.html');
 const LOGIN = path.join(__dirname, 'public', 'login.html');
+const TARJETA_JS = path.join(__dirname, 'public', 'tarjeta.js');
+const tarjeta = require('./src/tarjeta');
 const entraPorHttps = (req) => req.headers['x-forwarded-proto'] === 'https';
 
 // Con Supabase conectado, los ajustes viven en la tabla «ajustes» (sobreviven a los despliegues del VPS);
@@ -331,6 +333,23 @@ const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, 'http://localhost');
     const redirigir = (destino, cabeceras = {}) => { res.writeHead(302, { Location: destino, ...cabeceras }); res.end(); };
+
+    // El script de dibujo es público: lo comparten el navegador y el servidor.
+    if (req.method === 'GET' && url.pathname === '/tarjeta.js') {
+      res.writeHead(200, { 'Content-Type': 'application/javascript; charset=utf-8' });
+      return res.end(fs.readFileSync(TARJETA_JS));
+    }
+
+    // n8n pide la imagen de la tasa con el mismo token que ya usa el panel para avisarle (sin sesión de panel).
+    if (req.method === 'POST' && url.pathname === '/api/automatico/imagen') {
+      if (!(req.headers['content-type'] || '').startsWith('application/json')) return responder(res, 415, { error: 'Se requiere application/json' });
+      const b = await leerJson(req);
+      const { token } = n8n.leerConf();
+      if (!token || !sesion.claveCorrecta(b.token ?? '', token)) return responder(res, 401, { error: 'Token inválido' });
+      if (!/^(\d{8,20}@g\.us|\d{8,15})$/.test(String(b.destinoId || ''))) throw new Error('destinoId no válido');
+      await wa.enviarImagen(b.destinoId, tarjeta.png(b).toString('base64'));
+      return responder(res, 200, { ok: true });
+    }
 
     if (PANEL_PASSWORD) {
       if (url.pathname === '/login' && req.method === 'GET') {
