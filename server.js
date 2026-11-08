@@ -142,12 +142,12 @@ function validarTarifa(t) {
   return out;
 }
 
-function leerJson(req) {
+function leerJson(req, maximo = 1e5) {
   return new Promise((resolve, reject) => {
     let body = '';
     req.on('data', (d) => {
       body += d;
-      if (body.length > 1e5) { reject(new Error('Cuerpo demasiado grande')); req.destroy(); }
+      if (body.length > maximo) { reject(new Error('Cuerpo demasiado grande')); req.destroy(); }
     });
     req.on('end', () => {
       try { resolve(body ? JSON.parse(body) : {}); } catch { reject(new Error('JSON inválido')); }
@@ -270,6 +270,15 @@ const rutas = {
     return { ok: true };
   },
 
+  // Tarjeta de la tasa dibujada en el navegador (PNG en base64) con el mensaje como pie de foto.
+  'POST /api/enviar-imagen': async (body) => {
+    if (!body.destinoId) throw new Error('Elige un grupo o canal de destino');
+    const m = /^data:image\/png;base64,([A-Za-z0-9+/=]+)$/.exec(String(body.imagen || ''));
+    if (!m) throw new Error('La imagen no es un PNG válido');
+    await wa.enviarImagen(body.destinoId, m[1], String(body.mensaje || '').trim());
+    return { ok: true };
+  },
+
   // ---- ERP: lotes, envíos, gastos, tasas publicadas ----
   'GET /api/erp': async () => respuestaErp(),
 
@@ -364,7 +373,8 @@ const server = http.createServer(async (req, res) => {
       if (!(req.headers['content-type'] || '').startsWith('application/json')) {
         return responder(res, 415, { error: 'Se requiere application/json' });
       }
-      body = await leerJson(req);
+      // La imagen de la tasa viaja en base64 (≈1 MB como máximo).
+      body = await leerJson(req, url.pathname === '/api/enviar-imagen' ? 4e6 : 1e5);
     }
     const resultado = await handler(body, url);
     if (resultado && resultado.__csv !== undefined) {

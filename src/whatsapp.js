@@ -129,4 +129,17 @@ async function enviar(id, texto) {
   }
 }
 
-module.exports = { obtenerEstado, listarDestinos, enviar, guardarConf };
+async function enviarImagen(id, base64, pie = '') {
+  const c = leerConf();
+  if (!c.url || !c.apikey || !c.instance) throw new Error('WhatsApp no está configurado (Ajustes → WhatsApp).');
+  let estado;
+  try { estado = await estadoConexion(c); } catch (e) { throw new Error(`No se pudo consultar WhatsApp: ${e.message}`); }
+  if (estado !== 'open') {
+    throw new Error('WhatsApp no está conectado. Ve a Ajustes → WhatsApp y escanea el QR con el teléfono del bot.');
+  }
+  await llamar('POST', `/message/sendMedia/${encodeURIComponent(c.instance)}`, {
+    number: id, mediatype: 'image', mimetype: 'image/png', media: base64, fileName: 'tasa-flujo-cuba.png', caption: pie,
+  });
+}
+
+module.exports = { obtenerEstado, listarDestinos, enviar, enviarImagen, guardarConf };

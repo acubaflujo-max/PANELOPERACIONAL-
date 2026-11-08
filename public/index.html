@@ -313,7 +313,10 @@
               <div class="acciones" style="margin-top:0">
                 <button id="btnFijar" disabled>Fijar como tasa vigente</button>
                 <button class="enviar" id="btnEnviar" disabled>Fijar y publicar ahora</button>
+                <button class="enviar" id="btnEnviarImg" disabled>Publicar como imagen</button>
               </div>
+              <canvas id="tarjeta" hidden style="width:100%;max-width:340px;border-radius:12px;margin-top:14px"></canvas>
+              <p class="nota">«Publicar como imagen» manda esta tarjeta al grupo con el mensaje como pie de foto.</p>
               <p id="msg" class="nota"></p>
               <p class="nota">«Publicar ahora» envía el mensaje en este momento a <b id="destinoNombre">—</b> (<a href="#ajustes">cambiar</a>).</p>
               <details style="margin-top:14px">
@@ -861,8 +864,9 @@ async function calcular() {
 
 function actualizarBoton() {
   $('btnFijar').disabled = !ultimoCalculo;
-  $('btnEnviar').disabled = !(ultimoCalculo && $('mensaje').value.trim() && $('destino').value && waEstado === 'listo');
-  $('btnEnviar').title = waEstado === 'listo' ? '' : 'WhatsApp no está conectado';
+  $('btnEnviar').disabled = $('btnEnviarImg').disabled = !(ultimoCalculo && $('mensaje').value.trim() && $('destino').value && waEstado === 'listo');
+  $('btnEnviar').title = $('btnEnviarImg').title = waEstado === 'listo' ? '' : 'WhatsApp no está conectado';
+  dibujarTarjeta();
 }
 
 let tCalc;
@@ -904,11 +908,77 @@ $('btnFijar').onclick = async () => {
   actualizarBoton();
 };
 
-$('btnEnviar').onclick = async () => {
-  if (!confirm(`¿Publicar ahora la tasa ${fmt(ultimoCalculo.tasaCup, 1)} en «${$('destinoNombre').textContent}»?\nTambién queda fijada como tasa vigente para los turnos automáticos.`)) return;
-  $('btnEnviar').disabled = true;
+// Tarjeta de la tasa dibujada aquí mismo (canvas): los números salen exactos, sin IA ni APIs.
+function dibujarTarjeta() {
+  const c = $('tarjeta'), t = ultimoCalculo;
+  if (!t) { c.hidden = true; return null; }
+  c.hidden = false;
+  const W = 1080, H = 1080, g = c.getContext('2d');
+  c.width = W; c.height = H;
+  const tarifa = configActual.tarifa || {};
+  const umbral = tarifa.umbralBrl ?? 100, minimo = tarifa.montoMinimoBrl ?? 20;
+  const FUENTE = '"Segoe UI", Arial, Helvetica, sans-serif';
+  const centro = (txt, y, px, color, peso = 'bold') => { g.font = `${peso} ${px}px ${FUENTE}`; g.fillStyle = color; g.textAlign = 'center'; g.fillText(txt, W / 2, y); };
+  // Fondo azul marino con degradado
+  const fondo = g.createLinearGradient(0, 0, W, H);
+  fondo.addColorStop(0, '#0E3A8C'); fondo.addColorStop(1, '#061B4A');
+  g.fillStyle = fondo; g.fillRect(0, 0, W, H);
+  // Franjas diagonales sutiles (guiño a la bandera) y círculos de luz
+  g.save(); g.globalAlpha = 0.07; g.fillStyle = '#fff';
+  for (let i = 0; i < 5; i++) { g.save(); g.translate(0, 0); g.rotate(-Math.PI / 9); g.fillRect(-200, 520 + i * 90, W + 400, 34); g.restore(); }
+  g.restore();
+  g.save(); g.globalAlpha = 0.10; g.fillStyle = '#4C8DFF';
+  g.beginPath(); g.arc(W - 90, 130, 260, 0, Math.PI * 2); g.fill(); g.restore();
+  // Triángulo rojo con estrella (arriba a la izquierda)
+  g.fillStyle = '#E8283A';
+  g.beginPath(); g.moveTo(0, 0); g.lineTo(330, 0); g.lineTo(0, 330); g.closePath(); g.fill();
+  const estrella = (cx, cy, R) => {
+    g.beginPath();
+    for (let i = 0; i < 10; i++) {
+      const r = i % 2 ? R * 0.4 : R, a = -Math.PI / 2 + i * Math.PI / 5;
+      g[i ? 'lineTo' : 'moveTo'](cx + r * Math.cos(a), cy + r * Math.sin(a));
+    }
+    g.closePath(); g.fill();
+  };
+  g.fillStyle = '#fff'; estrella(85, 95, 52);
+  // Marca
+  g.textAlign = 'center';
+  centro('FLUJO CUBA REMESAS', 190, 52, '#fff');
+  centro('Brasil  ➜  Cuba', 245, 34, '#9FC2FF', 'normal');
+  // Etiqueta con fecha y turno
+  const fecha = new Date().toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'long' });
+  const etiqueta = `TASA DEL DÍA · ${fecha.toUpperCase()} · ${t.turno.toUpperCase()}`;
+  g.font = `bold 28px ${FUENTE}`;
+  const ancho = Math.min(g.measureText(etiqueta).width + 60, W - 80);
+  g.fillStyle = '#E8283A';
+  g.beginPath(); g.roundRect((W - ancho) / 2, 300, ancho, 60, 30); g.fill();
+  centro(etiqueta, 340, 28, '#fff');
+  // Tasa principal en una tarjeta blanca
+  g.save(); g.shadowColor = 'rgba(0,0,0,.35)'; g.shadowBlur = 40; g.shadowOffsetY = 18;
+  g.fillStyle = '#fff'; g.beginPath(); g.roundRect(90, 400, W - 180, 300, 36); g.fill(); g.restore();
+  g.fillStyle = '#E8283A'; g.beginPath(); g.roundRect(90, 400, 18, 300, [36, 0, 0, 36]); g.fill();
+  centro(`Desde ${umbral} BRL`, 465, 34, '#4A5B7D', 'normal');
+  centro(`1 BRL = ${fmt(t.tasaCup, 1)} CUP`, 580, 92, '#0E3A8C');
+  g.fillStyle = '#E8283A'; g.fillRect(W / 2 - 60, 620, 120, 8);
+  centro('pesos cubanos por cada real', 676, 30, '#4A5B7D', 'normal');
+  // Tasa de envíos pequeños
+  g.fillStyle = 'rgba(255,255,255,.12)'; g.beginPath(); g.roundRect(90, 735, W - 180, 140, 28); g.fill();
+  centro(`Menos de ${umbral} BRL`, 782, 30, '#9FC2FF', 'normal');
+  centro(`1 BRL = ${fmt(t.tasaPequena, 1)} CUP`, 850, 60, '#fff');
+  // Pie
+  centro(`Envío mínimo: ${minimo} BRL`, 935, 34, '#fff', 'normal');
+  g.fillStyle = '#E8283A'; g.fillRect(0, H - 90, W, 90);
+  centro('Escríbenos por WhatsApp para enviar', H - 36, 36, '#fff');
+  return c.toDataURL('image/png');
+}
+
+async function publicar(conImagen) {
+  const que = conImagen ? 'la imagen con la tasa' : 'la tasa';
+  if (!confirm(`¿Publicar ahora ${que} ${fmt(ultimoCalculo.tasaCup, 1)} en «${$('destinoNombre').textContent}»?\nTambién queda fijada como tasa vigente para los turnos automáticos.`)) return;
+  $('btnEnviar').disabled = $('btnEnviarImg').disabled = true;
   try {
-    await api('/api/enviar', { destinoId: $('destino').value, mensaje: $('mensaje').value });
+    if (conImagen) await api('/api/enviar-imagen', { destinoId: $('destino').value, mensaje: $('mensaje').value, imagen: dibujarTarjeta() });
+    else await api('/api/enviar', { destinoId: $('destino').value, mensaje: $('mensaje').value });
     aviso('✅ Publicada ' + new Date().toLocaleTimeString(), true);
     try {
       const r = await guardarEn('tasas', { ...ultimoCalculo, fecha: hoyIso(), notas: 'Publicada por WhatsApp' });
@@ -919,7 +989,9 @@ $('btnEnviar').onclick = async () => {
     } catch (e) { aviso(`Publicada, pero no se pudo registrar: ${e.message}`, false); }
   } catch (e) { aviso(e.message, false); }
   actualizarBoton();
-};
+}
+$('btnEnviar').onclick = () => publicar(false);
+$('btnEnviarImg').onclick = () => publicar(true);
 
 let mercado = null, rango = '168';
 
